@@ -1,0 +1,25 @@
+# اپ iOS فروشگاه شکالا
+
+نسخه‌ی iOS اپ فروشگاه [shkala.com](https://shkala.com) با SwiftUI.
+
+**قانون اصلی:** این اپ کپی دقیق و عینی اپ اندروید ([shkala-android](https://github.com/alirezaatwo/shkala-android)) است:
+همان صفحه‌ها، چیدمان، رنگ‌ها، اندازه‌ها، فونت، متن‌ها، آیکن‌ها و رفتارها. فقط چیزهایی که خود iOS تحمیل
+می‌کند (نوار وضعیت، کیبورد و پنجره‌های سیستم، برگشت با کشیدن از لبه، اعلان‌ها) می‌توانند فرق داشته باشند.
+
+## ساخت
+
+مک لازم نیست: هر push روی GitHub Actions (مک ابری) این کارها را انجام می‌دهد:
+
+1. ساخت پروژه‌ی Xcode از `project.yml` با XcodeGen
+2. اجرا در شبیه‌ساز iOS و گرفتن عکس از صفحه‌ها (Artifact: `screenshots`)
+3. ساخت فایل IPA بدون امضا (Artifact: `ipa-unsigned`) برای آپلود در سیب‌اپ و مارکت‌های مشابه
+
+## ساختار
+
+| پوشه | معادل در اپ اندروید |
+|---|---|
+| `Shkala/Theme` | `ui/theme` (رنگ‌ها، فونت یکان، تم روشن/تاریک) |
+| `Shkala/Icons` | `ui/common/icons` (فونت Remix Icon سایت) |
+| `Shkala/Common` | `ui/common` |
+| `Shkala/Data` | `data` |
+| `Shkala/App` | `MainActivity` و ناوبری |

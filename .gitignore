@@ -1,0 +1,9 @@
+# پروژه‌ی Xcode با XcodeGen ساخته می‌شود
+*.xcodeproj
+Shkala/Info.plist
+build/
+out/
+screenshots/
+DerivedData/
+.DS_Store
+xcuserdata/
