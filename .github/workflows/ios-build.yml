@@ -1,0 +1,83 @@
+# ساخت خودکار اپ iOS روی مک ابری GitHub:
+#  ۱) ساخت پروژه با XcodeGen
+#  ۲) اجرای اپ در شبیه‌ساز iOS و گرفتن عکس از صفحه‌ها (برای مقایسه با اپ اندروید)
+#  ۳) ساخت فایل IPA بدون امضا (برای آپلود در سیب‌اپ و مارکت‌های مشابه که خودشان امضا می‌کنند)
+# خروجی‌ها در بخش Artifacts همین اجرا قرار می‌گیرند.
+name: iOS build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild -project Shkala.xcodeproj -scheme Shkala \
+            -sdk iphonesimulator -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/sim \
+            CODE_SIGNING_ALLOWED=NO build | tee build/sim-build.log | grep -E "error:|warning: |\*\* BUILD" || true
+          test -d build/sim/Build/Products/Debug-iphonesimulator/Shkala.app
+
+      - name: Screenshots
+        run: scripts/screenshots.sh build/sim/Build/Products/Debug-iphonesimulator/Shkala.app screenshots
+
+      - name: Build unsigned IPA
+        run: |
+          set -o pipefail
+          xcodebuild -project Shkala.xcodeproj -scheme Shkala \
+            -sdk iphoneos -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tee build/device-build.log | grep -E "error:|\*\* BUILD" || true
+          APP=build/device/Build/Products/Release-iphoneos/Shkala.app
+          test -d "$APP"
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Info.plist")
+          BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP/Info.plist")
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          (cd out && zip -qry "Shkala-$VERSION-$BUILD-unsigned.ipa" Payload)
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa-unsigned
+          path: out/*.ipa
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-logs
+          path: build/*.log
+          if-no-files-found: ignore
