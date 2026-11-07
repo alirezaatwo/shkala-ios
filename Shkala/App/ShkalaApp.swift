@@ -215,6 +215,27 @@ struct ScreenshotMode {
                     nav.navigate(.brand(slug: b.slug))
                 }
             }
+        // مرحله‌ی ۵ - بخش ۴ تا ۷: ابزارها، پرسش‌ها، قوانین، تماس، مقاله‌ها، مقایسه، اطلاعیه و ...
+        case "tools": nav.navigate(.tools)
+        case "hdd": nav.navigate(.hddCalculator)
+        case "faq": nav.navigate(.faqList)
+        case "terms": nav.navigate(.terms)
+        case "contact": nav.navigate(.contactUs)
+        case "articles": nav.navigate(.articleList(slug: ALL_ARTICLES_SLUG, title: "مجله"))
+        case "compare": nav.navigate(.compare)
+        case "in-carts": nav.navigate(.inCartsNow)
+        case "announcement": nav.navigate(.announcement)
+        case "guaranty": nav.navigate(.webpage(url: ApiConstants.BASE_URL.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/guaranty/"))
+        // اولین مقاله‌ی مجله (صفحه‌ی مقاله + دیدگاه‌ها)
+        case "article-first":
+            Task {
+                let repo = ContentRepository()
+                if case .success(let page) = await repo.getArticles(),
+                   let a = page.items.first,
+                   case .success(let detail) = await repo.getArticleDetail(a.slug) {
+                    nav.navigate(.articleDetail(slug: a.slug, title: detail.title, html: detail.content ?? "", imageUrl: a.image?.url))
+                }
+            }
         default: break
         }
     }
