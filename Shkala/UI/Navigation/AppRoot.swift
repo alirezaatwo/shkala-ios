@@ -592,6 +592,12 @@ struct AppRoot: View {
                 .id(slug)
         case .compare:
             CompareScreen(onBack: { navigator.popBackStack() }, onGoHome: { navigator.selectTab(.HOME) })
+        case .webpage(let url):
+            WebPageScreen(url: url, onBack: { navigator.popBackStack() })
+        case .announcement:
+            AnnouncementScreen(onBack: { navigator.popBackStack() }, onGoHome: { navigator.selectTab(.HOME) })
+        case .inCartsNow:
+            InCartsNowScreen(onBack: { navigator.popBackStack() }, onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) })
         case .favoritesList:
             FavoritesScreen(
                 onBack: { navigator.popBackStack() },

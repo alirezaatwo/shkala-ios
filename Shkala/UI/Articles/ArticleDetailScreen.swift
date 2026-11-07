@@ -194,7 +194,7 @@ private func estimateReadMinutes(_ html: String) -> Int? {
 }
 
 /// اسکریپت گزارش ارتفاع + کلیک عکس‌ها (همون اسکریپت onPageFinished اندروید)
-private let ARTICLE_HEIGHT_BRIDGE_JS = """
+let ARTICLE_HEIGHT_BRIDGE_JS = """
 (function() {
     function reportNow() {
         window.webkit.messageHandlers.reportHeight.postMessage(document.documentElement.scrollHeight);
@@ -245,7 +245,7 @@ private struct ArticleWebViewContent: View {
 
     var body: some View {
         let imageUrls = extractImageUrls(html)
-        ArticleWebView(
+        SelfSizingHtmlWebView(
             html: html,
             textColor: textColor,
             linkColor: linkColor,
@@ -260,7 +260,7 @@ private struct ArticleWebViewContent: View {
     }
 }
 
-private struct ArticleWebView: UIViewRepresentable {
+struct SelfSizingHtmlWebView: UIViewRepresentable {
     let html: String
     let textColor: String
     let linkColor: String
