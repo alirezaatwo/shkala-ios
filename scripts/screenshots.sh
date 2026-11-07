@@ -28,7 +28,23 @@ shot() {
   echo "  $name"
 }
 
+# عیب‌یابی: اگر اپ در شبیه‌ساز کرش کرده باشد، خلاصه‌ی آخرین گزارش کرش در لاگ CI چاپ می‌شود
+dump_crash() {
+  local crash
+  crash=$(ls -t ~/Library/Logs/DiagnosticReports/Shkala* 2>/dev/null | head -1 || true)
+  if [ -n "$crash" ]; then
+    echo "=== CRASH REPORT: $crash ==="
+    head -c 12000 "$crash"
+    echo
+    echo "=== END CRASH REPORT ==="
+    return 0
+  fi
+  return 1
+}
+
 shot 01-splash-0600ms   -shkScreen splash:600
+# کرش در همان اجرای اول: گزارش و توقف (صرفه‌جویی در زمان CI)
+if dump_crash; then exit 1; fi
 shot 02-splash-1400ms   -shkScreen splash:1400
 shot 03-splash-2400ms   -shkScreen splash:2400
 shot 04-splash-3000ms   -shkScreen splash:3000
@@ -121,3 +137,6 @@ xcrun simctl io "$UDID" screenshot "$OUT/12-live-splash-2s.png" >/dev/null
 sleep 7
 xcrun simctl io "$UDID" screenshot "$OUT/13-live-after-9s.png" >/dev/null
 echo done
+
+
+dump_crash || true

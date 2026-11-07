@@ -8,7 +8,6 @@ struct ShkalaApp: App {
         // معادل ShkalaApplication.onCreate اندروید: گزارش خطا (هندلر کرش) و اعلان‌ها
         ErrorReporter.initialize()
         PushNotifier.setup()
-        PushSync.scheduleBackgroundRefresh()
     }
 
     var body: some Scene {
@@ -18,6 +17,8 @@ struct ShkalaApp: App {
         // برگشتن اپ به جلو: بررسی اعلان‌های جدید (معادل onResume اکتیویتی اندروید)
         .onChange(of: scenePhase) { phase in
             if phase == .active && !ScreenshotMode.isActive { PushSync.checkNow() }
+            // رفتن اپ به پس‌زمینه: زمان‌بندی بررسی بعدی اعلان‌ها (بعد از ثبت هندلر توسط SwiftUI)
+            if phase == .background && !ScreenshotMode.isActive { PushSync.scheduleBackgroundRefresh() }
         }
         // بررسی دوره‌ای اعلان‌ها در پس‌زمینه (معادل PushJobService اندروید؛ زمان اجرا دست iOS است)
         .backgroundTask(.appRefresh(PushSync.BACKGROUND_TASK_ID)) {
