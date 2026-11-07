@@ -392,7 +392,7 @@ private struct FinancialSummaryCard: View {
                 VStack(spacing: 0) {
                     AmountRow(label: "کسر از کیف پول", amount: abs(walletDeduction), icon: RemixIcons.Wallet3Line, valueColor: primary)
                     SiteDashedDivider()
-                    AmountRow(label: "قابل‌پرداخت از درگاه", amount: payableAfterWallet, emphasized: true, valueColor: primary)
+                    AmountRow(label: "قابل‌پرداخت از درگاه", amount: payableAfterWallet, valueColor: primary, emphasized: true)
                 }
                 .transition(.opacity)
             }
@@ -418,7 +418,7 @@ private struct AmountRow: View {
                 Spacer().frame(width: 6)
             }
             Text(label)
-                .shkFont(emphasized ? 13 : 12, emphasized ? .bold : .regular)
+                .shkFont(emphasized ? 13 : 12, emphasized ? .bold : .normal)
                 .foregroundColor(emphasized ? colors.onSurface : colors.onSurfaceVariant)
                 .frame(maxWidth: .infinity, alignment: .leading)
             AnimatedAmountText(amount: amount, fontSize: emphasized ? 15 : 13, weight: emphasized ? .bold : .medium,
@@ -432,7 +432,7 @@ private struct AmountRow: View {
 struct AnimatedAmountText: View {
     let amount: Int64
     let fontSize: CGFloat
-    let weight: Font.Weight
+    let weight: ShkWeight
     let color: Color
     @State private var shown: Int64? = nil
     @State private var goingUp = true

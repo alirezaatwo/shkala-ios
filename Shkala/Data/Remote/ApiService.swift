@@ -301,6 +301,25 @@ enum ApiService {
         try await api.call(.get, "api/v2/orders/\(enc(uuid))", as: OrderStatusResponse.self)
     }
 
+    // ---- سفارش‌های من ----
+
+    /// جستجو بر اساس شماره‌ی سفارش (روی rejected_orders هم اعمال می‌شه)
+    static func getMyOrders(page: Int = 1, search: String? = nil) async throws -> ApiResponse<OrdersListResponse> {
+        try await api.call(.get, "api/v2/my-orders", query: ["page": String(page), "search": search], as: OrdersListResponse.self)
+    }
+
+    static func getMyOrderDetail(id: Int) async throws -> ApiResponse<OrderDetailResponse> {
+        try await api.call(.get, "api/v2/my-orders/\(id)", as: OrderDetailResponse.self)
+    }
+
+    static func getMyOrderReceipt(id: Int) async throws -> ApiResponse<Data> {
+        try await api.callRaw(.get, "api/v2/my-orders/\(id)/receipt")
+    }
+
+    static func getInvoiceBridge(id: Int) async throws -> ApiResponse<InvoiceBridgeResponse> {
+        try await api.call(.get, "api/v2/my-orders/\(id)/invoice-bridge", as: InvoiceBridgeResponse.self)
+    }
+
     // ---- وضعیت اپ ----
 
     /// شناسه‌ی نصب و نسخه‌ی اپ برای آمار لایو «کاربران آنلاین» در پنل (null = هدر ارسال نمی‌شه)

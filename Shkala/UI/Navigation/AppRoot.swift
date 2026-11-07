@@ -442,6 +442,17 @@ struct AppRoot: View {
                 // بازطراحی: دکمه‌ی ثانویه‌ی «مشاهده‌ی سفارش‌های من» در صفحه‌ی نتیجه
                 onViewOrders: { navigator.navigateFromHome(.ordersList) }
             )
+        case .ordersList:
+            OrdersListScreen(
+                onBack: { navigator.popBackStack() },
+                onOrderClick: { orderId in navigator.navigate(.orderDetail(id: orderId)) }
+            )
+        case .orderDetail(let orderId):
+            OrderDetailScreen(
+                orderId: orderId,
+                onBack: { navigator.popBackStack() },
+                onProductClick: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
         default:
             ComingSoonScreen(title: route.placeholderTitle, icon: RemixIcons.HammerLine, onBack: { navigator.popBackStack() })
         }
