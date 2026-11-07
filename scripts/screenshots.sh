@@ -39,6 +39,16 @@ shot 08-intro-4         -shkScreen intro:3
 shot 09-intro-6-last    -shkScreen intro:5
 shot 10-main-light      -shkScreen main
 shot 11-main-dark       -shkScreen main -shkDark
+shot 14-auth-phone      -shkScreen auth:phone
+shot 15-auth-phone-err  -shkScreen auth:phone-error
+shot 16-auth-password   -shkScreen auth:password
+shot 17-auth-code       -shkScreen auth:code
+shot 18-auth-code-err   -shkScreen auth:code-error
+shot 19-auth-success    -shkScreen auth:code-success
+shot 20-auth-dark       -shkScreen auth:code -shkDark
+shot 21-maintenance     -shkScreen maintenance
+shot 22-maint-countdown -shkScreen maintenance-countdown
+shot 23-maint-dark      -shkScreen maintenance-countdown -shkDark
 
 # اجرای واقعی (بدون حالت عکس): اسپلش متحرک و بارگذاری
 xcrun simctl terminate "$UDID" com.shkala.app >/dev/null 2>&1 || true

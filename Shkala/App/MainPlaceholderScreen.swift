@@ -1,10 +1,14 @@
 import SwiftUI
 
 /// جای موقت صفحه‌ی اصلی اپ (AppRoot اندروید) تا مرحله‌ی ۳.
-/// فقط برای بررسی رنگ‌ها، فونت، آیکن‌ها و تم روشن/تاریک در عکس‌های مرحله‌ی ۱.
+/// فقط برای بررسی رنگ‌ها، فونت، آیکن‌ها، تم روشن/تاریک، ورود و گفتینو.
 struct MainPlaceholderScreen: View {
     let isDarkTheme: Bool
     let onToggleTheme: () -> Void
+    /// موقت (تا صفحه‌ی حساب در مرحله‌ی بعد): باز کردن صفحه‌ی ورود
+    var onOpenAuth: () -> Void = {}
+
+    @ObservedObject private var tokenManager = TokenManager.shared
 
     @Environment(\.shkColors) private var colors
 
@@ -54,6 +58,17 @@ struct MainPlaceholderScreen: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)
+
+            if let type = tokenManager.userType, tokenManager.token != nil {
+                Text("وارد حساب شده‌اید (\(type))")
+                    .shkFont(.bodyMedium)
+                    .foregroundColor(SiteStatusColors.Success)
+                SiteSecondaryButton(text: "خروج از حساب", onClick: { tokenManager.clearSession() }, icon: RemixIcons.LogoutBoxRLine)
+            } else {
+                SitePrimaryButton(text: "ورود | ثبت‌نام", onClick: onOpenAuth, icon: RemixIcons.LoginBoxLine)
+            }
+
+            SiteSecondaryButton(text: "مشاوره‌ی آنلاین", onClick: { GoftinoViewModel.shared.isChatVisible = true }, icon: RemixIcons.CustomerService2Line)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
