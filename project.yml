@@ -52,6 +52,11 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         # ذخیره‌ی عکس محصول در گالری (دکمه‌ی دانلودِ لایت‌باکس)
         NSPhotoLibraryAddUsageDescription: برای ذخیره‌ی تصویر محصول در گالری گوشی
+        # بررسی دوره‌ای اعلان‌های اپ در پس‌زمینه (PushSync - BGAppRefreshTask)
+        UIBackgroundModes:
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.shkala.app.push-refresh
         UIAppFonts:
           - iranyekan_regular.ttf
           - iranyekan_bold.ttf

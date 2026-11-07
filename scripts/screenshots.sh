@@ -28,7 +28,23 @@ shot() {
   echo "  $name"
 }
 
+# عیب‌یابی: اگر اپ در شبیه‌ساز کرش کرده باشد، خلاصه‌ی آخرین گزارش کرش در لاگ CI چاپ می‌شود
+dump_crash() {
+  local crash
+  crash=$(ls -t ~/Library/Logs/DiagnosticReports/Shkala* 2>/dev/null | head -1 || true)
+  if [ -n "$crash" ]; then
+    echo "=== CRASH REPORT: $crash ==="
+    head -c 12000 "$crash"
+    echo
+    echo "=== END CRASH REPORT ==="
+    return 0
+  fi
+  return 1
+}
+
 shot 01-splash-0600ms   -shkScreen splash:600
+# کرش در همان اجرای اول: گزارش و توقف (صرفه‌جویی در زمان CI)
+if dump_crash; then exit 1; fi
 shot 02-splash-1400ms   -shkScreen splash:1400
 shot 03-splash-2400ms   -shkScreen splash:2400
 shot 04-splash-3000ms   -shkScreen splash:3000
@@ -105,6 +121,10 @@ WAIT=10 shot 80-compare           -shkScreen route:compare
 WAIT=12 shot 81-in-carts          -shkScreen route:in-carts
 WAIT=8  shot 82-announcement      -shkScreen route:announcement
 WAIT=12 shot 83-webpage           -shkScreen route:guaranty
+# مرحله‌ی ۶: مودال بروزرسانی iOS (داده‌ی نمونه)
+WAIT=6  shot 84-update            -shkScreen route:update
+WAIT=6  shot 85-update-forced     -shkScreen route:update-forced
+WAIT=6  shot 86-update-dark       -shkScreen route:update -shkDark
 shot 21-maintenance     -shkScreen maintenance
 shot 22-maint-countdown -shkScreen maintenance-countdown
 shot 23-maint-dark      -shkScreen maintenance-countdown -shkDark
@@ -117,3 +137,6 @@ xcrun simctl io "$UDID" screenshot "$OUT/12-live-splash-2s.png" >/dev/null
 sleep 7
 xcrun simctl io "$UDID" screenshot "$OUT/13-live-after-9s.png" >/dev/null
 echo done
+
+
+dump_crash || true

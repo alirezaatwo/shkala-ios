@@ -2,9 +2,28 @@ import SwiftUI
 
 @main
 struct ShkalaApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // معادل ShkalaApplication.onCreate اندروید: گزارش خطا (هندلر کرش) و اعلان‌ها
+        ErrorReporter.initialize()
+        PushNotifier.setup()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
+        }
+        // برگشتن اپ به جلو: بررسی اعلان‌های جدید (معادل onResume اکتیویتی اندروید)
+        .onChange(of: scenePhase) { phase in
+            if phase == .active && !ScreenshotMode.isActive { PushSync.checkNow() }
+            // رفتن اپ به پس‌زمینه: زمان‌بندی بررسی بعدی اعلان‌ها (بعد از ثبت هندلر توسط SwiftUI)
+            if phase == .background && !ScreenshotMode.isActive { PushSync.scheduleBackgroundRefresh() }
+        }
+        // بررسی دوره‌ای اعلان‌ها در پس‌زمینه (معادل PushJobService اندروید؛ زمان اجرا دست iOS است)
+        .backgroundTask(.appRefresh(PushSync.BACKGROUND_TASK_ID)) {
+            PushSync.scheduleBackgroundRefresh()
+            _ = await PushSync.shared.sync()
         }
     }
 }
@@ -38,6 +57,8 @@ struct RootView: View {
             case .splash:
                 SplashStage(viewModel: startupViewModel, onRetry: restart) {
                     showStartupVpnWarning = isVpnActive()
+                    // آمار نصب، اعلان‌های جدید و صف گزارش خطا (یک‌بار در هر اجرا، در پس‌زمینه)
+                    AppTelemetry.onStartupCompleted()
                     stage = IntroPreferenceManager.hasSeenIntro() ? .main : .intro
                 }
             case .intro:
@@ -101,6 +122,7 @@ struct RootView: View {
         case .route(let name):
             AppRoot(isDarkTheme: mode.dark)
                 .systemBarsBackground()
+                .overlay { ScreenshotUpdateDialogHost() }
                 .task { ScreenshotMode.openRoute(name) }
         case .maintenance(let countdown):
             MaintenanceScreen(
@@ -225,6 +247,9 @@ struct ScreenshotMode {
         case "compare": nav.navigate(.compare)
         case "in-carts": nav.navigate(.inCartsNow)
         case "announcement": nav.navigate(.announcement)
+        // مرحله‌ی ۶: مودال بروزرسانی (عادی / اجباری) با داده‌ی نمونه
+        case "update": AppUpdateViewModel.shared.showScreenshotPreview(forced: false)
+        case "update-forced": AppUpdateViewModel.shared.showScreenshotPreview(forced: true)
         case "guaranty": nav.navigate(.webpage(url: ApiConstants.BASE_URL.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/guaranty/"))
         // اولین مقاله‌ی مجله (صفحه‌ی مقاله + دیدگاه‌ها)
         case "article-first":
@@ -350,4 +375,16 @@ struct ScreenshotScrollOffset: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {}
+}
+
+/// فقط عکس‌برداری: مودال بروزرسانی (در اپ واقعی داخل StartupDialogsHost رندر می‌شه)
+private struct ScreenshotUpdateDialogHost: View {
+    @ObservedObject private var viewModel = AppUpdateViewModel.shared
+    var body: some View {
+        Color.clear
+            .allowsHitTesting(false)
+            .siteDialog(isPresented: $viewModel.showDialog, dismissOnClickOutside: false) {
+                AppUpdateDialog(viewModel: viewModel)
+            }
+    }
 }

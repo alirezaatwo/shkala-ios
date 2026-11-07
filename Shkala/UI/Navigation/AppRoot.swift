@@ -357,6 +357,16 @@ struct AppRoot: View {
             // تعداد روی آیکن سبد درست باشه - نه فقط وقتی کاربر سبد رو باز می‌کنه
             if isLoggedIn { cartViewModel.loadCart(silently: true) }
         }
+        // لمس اعلان اپ: صفحه‌ی محصول یا لینک داخل اپ باز می‌شه (معادل LaunchedEffect(pendingPushOpen) اندروید)
+        .onReceive(PushOpenCenter.shared.$pending) { request in
+            guard let request else { return }
+            if let slug = request.productSlug, !slug.isBlankShk {
+                navigator.navigate(.productDetail(slug: slug))
+            } else if let link = request.link, !link.isBlankShk {
+                navigator.openAppLink(link)
+            }
+            PushOpenCenter.shared.pending = nil
+        }
         // تب انتخاب‌شده از هر جای اپ (مثلاً منوی «مجله» یا لینک) هم زنده نگه داشته می‌شه
         .onChange(of: navigator.tab) { t in visitedTabs.insert(t) }
         .onChange(of: navigator.tab == .CATEGORIES && navigator.stack.isEmpty) { visible in

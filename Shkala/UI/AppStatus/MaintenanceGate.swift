@@ -81,6 +81,8 @@ func fetchMaintenanceStatus() async -> MaintenanceInfo? {
     if response.isSuccessful, let body = response.body {
         // پاسخ کامل (شامل popup و announcement) برای بقیه‌ی بخش‌های اپ
         AppStatusCache.shared.update(body)
+        // اعلان جدید در سرور (بزرگ‌تر از آخرین شناسه‌ی دیده‌شده) → گرفتن فوری اعلان‌ها
+        PushSync.onLatestIdFromStatus(body.latestNotificationId)
         let serverNow = parseIsoUtcMillis(body.serverTime)
         return MaintenanceInfo(
             maintenance: body.maintenance,
@@ -117,6 +119,8 @@ struct MaintenanceGate<Content: View>: View {
                 content()
             }
         }
+        // بررسی بروزرسانی نسخه‌ی اپ (برای بج سایدبار) - یک‌بار در هر اجرا
+        .task { AppUpdateViewModel.shared.checkForUpdate() }
         // معادل repeatOnLifecycle(STARTED): فقط وقتی اپ جلوئه
         .task(id: scenePhase == .active) {
             guard scenePhase == .active, !ScreenshotMode.isActive else { return }

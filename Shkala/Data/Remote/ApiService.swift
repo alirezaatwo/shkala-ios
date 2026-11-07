@@ -568,6 +568,41 @@ enum ApiService {
             as: AppStatusResponse.self
         )
     }
+
+    /// آخرین نسخه‌ی منتشرشده؛ سرور با هدر X-Shk-Platform: ios (همه‌ی درخواست‌ها) نسخه‌ی iOS رو برمی‌گردونه
+    static func getAppLatestVersion() async throws -> ApiResponse<AppLatestVersionResponse> {
+        try await api.call(.get, "api/v2/app/latest-version", query: ["platform": "ios"], as: AppLatestVersionResponse.self)
+    }
+
+    // گزارش حضور نصب (یک‌بار در هر اجرای اپ) - بدون نیاز به ورود
+    static func sendAppHeartbeat(_ body: AppHeartbeatRequest) async throws -> ApiResponse<AppTelemetryResponse> {
+        try await api.call(.post, "api/v2/app/heartbeat", body: body, as: AppTelemetryResponse.self)
+    }
+
+    // ارسال گزارش خطاهای اپ (حداکثر ۲۰ مورد در هر درخواست؛ فقط با رضایت کاربر)
+    static func uploadAppErrors(_ body: AppErrorsUploadRequest) async throws -> ApiResponse<AppTelemetryResponse> {
+        try await api.call(.post, ApiConstants.APP_ERRORS_PATH, body: body, as: AppTelemetryResponse.self)
+    }
+
+    // اعلان‌های اپ بدون FCM: اعلان‌های جدیدتر از آخرین شناسه‌ی دیده‌شده (بدون نیاز به ورود)
+    static func getAppNotifications(afterId: Int64, installId: String?) async throws -> ApiResponse<PushNotificationsResponse> {
+        try await api.call(
+            .get, "api/v2/app/notifications",
+            query: ["after_id": String(afterId)],
+            headers: ["X-Shk-Install": installId],
+            as: PushNotificationsResponse.self
+        )
+    }
+
+    // ثبت «اعلان نمایش داده شد» (idempotent)
+    static func markAppNotificationReceived(id: Int64, _ body: PushEventRequest) async throws -> ApiResponse<AppTelemetryResponse> {
+        try await api.call(.post, "api/v2/app/notifications/\(id)/received", body: body, as: AppTelemetryResponse.self)
+    }
+
+    // ثبت «کاربر روی اعلان زد» (idempotent؛ کلیک یعنی دریافت هم شده)
+    static func markAppNotificationClicked(id: Int64, _ body: PushEventRequest) async throws -> ApiResponse<AppTelemetryResponse> {
+        try await api.call(.post, "api/v2/app/notifications/\(id)/clicked", body: body, as: AppTelemetryResponse.self)
+    }
 }
 
 /// معادل currentAppVersionName اپ اندروید: نسخه‌ی نمایشی اپ (CFBundleShortVersionString)
