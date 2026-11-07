@@ -7,6 +7,11 @@ options:
     iOS: "16.0"
   developmentLanguage: fa
   createIntermediateGroups: true
+# نقشه‌ی انتخاب لوکیشن: همون موتور MapLibre اپ اندروید (با استایل نقشه‌ی نشان)
+packages:
+  MapLibre:
+    url: https://github.com/maplibre/maplibre-gl-native-distribution
+    from: 6.0.0
 settings:
   base:
     SWIFT_VERSION: "5.0"
@@ -19,6 +24,8 @@ targets:
     scheme: {}
     sources:
       - path: Shkala
+    dependencies:
+      - package: MapLibre
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shkala.app

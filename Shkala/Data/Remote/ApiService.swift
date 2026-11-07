@@ -204,6 +204,103 @@ enum ApiService {
         try await api.call(.post, "api/v2/cart/remove", form: ["consignment_item_id": String(consignmentItemId)], as: CartItemResponse.self)
     }
 
+    // ---- آدرس‌ها ----
+
+    static func getAddresses() async throws -> ApiResponse<AddressesResponse> {
+        try await api.call(.get, "api/v2/addresses", as: AddressesResponse.self)
+    }
+
+    private static func addressForm(
+        _ firstName: String, _ lastName: String, _ state: String, _ city: String, _ phone: String,
+        _ postalCode: String, _ fullAddress: String, _ mapLat: Double?, _ mapLng: Double?
+    ) -> [String: String?] {
+        [
+            "first_name": firstName, "last_name": lastName, "state": state, "city": city, "phone": phone,
+            "postal_code": postalCode, "full_address": fullAddress,
+            "map[lat]": mapLat.map { String($0) }, "map[lng]": mapLng.map { String($0) },
+        ]
+    }
+
+    static func createAddress(
+        firstName: String, lastName: String, state: String, city: String, phone: String,
+        postalCode: String, fullAddress: String, mapLat: Double? = nil, mapLng: Double? = nil
+    ) async throws -> ApiResponse<AddressResponse> {
+        try await api.call(.post, "api/v2/addresses",
+                           form: addressForm(firstName, lastName, state, city, phone, postalCode, fullAddress, mapLat, mapLng),
+                           as: AddressResponse.self)
+    }
+
+    static func updateAddress(
+        id: Int, firstName: String, lastName: String, state: String, city: String, phone: String,
+        postalCode: String, fullAddress: String, mapLat: Double? = nil, mapLng: Double? = nil
+    ) async throws -> ApiResponse<AddressResponse> {
+        try await api.call(.put, "api/v2/addresses/\(id)",
+                           form: addressForm(firstName, lastName, state, city, phone, postalCode, fullAddress, mapLat, mapLng),
+                           as: AddressResponse.self)
+    }
+
+    static func selectAddress(id: Int) async throws -> ApiResponse<AddressResponse> {
+        try await api.call(.post, "api/v2/addresses/\(id)/select", as: AddressResponse.self)
+    }
+
+    static func deleteAddress(id: Int) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(.delete, "api/v2/addresses/\(id)")
+    }
+
+    // ---- روش ارسال ----
+
+    static func getShipping() async throws -> ApiResponse<ShippingResponse> {
+        try await api.call(.get, "api/v2/shipping", as: ShippingResponse.self)
+    }
+
+    static func selectShippingMethod(type: String, consignmentUuid: String, sendMethodUuid: String) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(.post, "api/v2/shipping/select-method", form: [
+            "type": type, "consignment_uuid": consignmentUuid, "send_method_uuid": sendMethodUuid,
+        ])
+    }
+
+    static func selectShopAddress(receptionCenterId: String) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(.post, "api/v2/shipping/select-shop-address", form: ["reception_center_id": receptionCenterId])
+    }
+
+    // فاز ۱۴: کد تخفیف تسویه‌حساب
+    static func applyDiscount(code: String) async throws -> ApiResponse<DiscountResponse> {
+        try await api.call(.post, "api/v2/shipping/discount", form: ["code": code], as: DiscountResponse.self)
+    }
+
+    static func removeDiscount() async throws -> ApiResponse<DiscountResponse> {
+        try await api.call(.delete, "api/v2/shipping/discount", as: DiscountResponse.self)
+    }
+
+    // ---- پرداخت ----
+
+    static func getPaymentGateways() async throws -> ApiResponse<PaymentGatewaysResponse> {
+        try await api.call(.get, "api/v2/payment-gateways", as: PaymentGatewaysResponse.self)
+    }
+
+    static func pay(paymentGateway: String, description: String? = nil, useWallet: Int? = nil) async throws -> ApiResponse<PayResponse> {
+        try await api.call(.post, "api/v2/checkout/pay", form: [
+            "payment_gateway": paymentGateway, "description": description, "use_wallet": useWallet.map(String.init),
+        ], as: PayResponse.self)
+    }
+
+    // فاز ۱۵: پرداخت ترکیبی کیف پول + کارت‌به‌کارت - اگه کل مبلغ با کیف پول پوشش داده بشه نیازی به رسید نیست
+    static func payCardToCard(receipt: MultipartPart?, useWallet: Bool) async throws -> ApiResponse<CardToCardResponse> {
+        var parts: [MultipartPart] = []
+        if let receipt { parts.append(receipt) }
+        if useWallet { parts.append(.text("use_wallet", "1")) }
+        return try await api.callMultipart(.post, "api/v2/checkout/pay/card-to-card", parts: parts, as: CardToCardResponse.self)
+    }
+
+    // ثبت سفارش و پرداخت با هماهنگی کارشناس فروشگاه (مکانیزم کارت‌به‌کارت با رسید خودکار)
+    static func payCoordinated(description: String? = nil) async throws -> ApiResponse<CardToCardResponse> {
+        try await api.call(.post, "api/v2/checkout/pay/coordinated", form: ["description": description], as: CardToCardResponse.self)
+    }
+
+    static func getOrderStatus(uuid: String) async throws -> ApiResponse<OrderStatusResponse> {
+        try await api.call(.get, "api/v2/orders/\(enc(uuid))", as: OrderStatusResponse.self)
+    }
+
     // ---- وضعیت اپ ----
 
     /// شناسه‌ی نصب و نسخه‌ی اپ برای آمار لایو «کاربران آنلاین» در پنل (null = هدر ارسال نمی‌شه)

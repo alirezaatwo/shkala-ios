@@ -25,6 +25,16 @@ enum AppRoute: Hashable {
     case fullSpecs(groups: [SpecificationGroupDto])
     // صفحه‌ی مقایسه‌ی محصولات (مرحله‌ی ۵)
     case compare
+    // مرحله‌ی ۴: آدرس‌ها، نقشه، پرداخت و نتیجه‌ی سفارش
+    case addresses
+    case addressForm(id: Int?)
+    case mapPicker
+    case paymentWebView
+    case cardToCard
+    case orderResult(kind: OrderResultKind, uuid: String?)
+    // سفارش‌های من
+    case ordersList
+    case orderDetail(id: Int)
 
     /// اسلاگ‌های قراردادی فهرست‌های «مشاهده همه» صفحه‌ی اصلی (همون Routes.*_SLUG اندروید)
     static let DISCOUNT_PRODUCTS_SLUG = "__discount__"
@@ -53,6 +63,14 @@ enum AppRoute: Hashable {
         case .cartPrefactor: return "پیش‌فاکتور"
         case .productDescription(let title, _): return title
         case .fullSpecs: return "مشخصات فنی محصول"
+        case .addresses: return "آدرس‌ها و نحوه‌ی دریافت"
+        case .addressForm(let id): return id == nil ? "افزودن آدرس" : "ویرایش آدرس"
+        case .mapPicker: return "انتخاب موقعیت روی نقشه"
+        case .paymentWebView: return "پرداخت"
+        case .cardToCard: return "پرداخت کارت‌به‌کارت"
+        case .orderResult: return "نتیجه‌ی سفارش"
+        case .ordersList: return "سفارش‌های من"
+        case .orderDetail: return "جزئیات سفارش"
         }
     }
 }
@@ -75,6 +93,22 @@ final class AppNavigator: ObservableObject {
 
     func popBackStack() { if !stack.isEmpty { stack.removeLast() } }
 
+    /// معادل navigate(route) { popUpTo(target) { inclusive } }: صفحه‌های بالای آخرین صفحه‌ی مطابق
+    /// (و با inclusive خودش) بسته می‌شن، بعد صفحه‌ی جدید باز می‌شه
+    func navigate(_ route: AppRoute, popUpTo target: (AppRoute) -> Bool, inclusive: Bool) {
+        if let index = stack.lastIndex(where: target) {
+            stack.removeSubrange((inclusive ? index : index + 1)...)
+        }
+        stack.append(route)
+    }
+
+    /// معادل navigate(route) { popUpTo(HOME) }: همه‌ی صفحه‌ها بسته می‌شن و صفحه‌ی جدید روی تب خانه باز می‌شه
+    func navigateFromHome(_ route: AppRoute) {
+        stack.removeAll()
+        tab = .HOME
+        stack.append(route)
+    }
+
     /// معادل navigate(tab) { popUpTo(start) { saveState = true }; launchSingleTop; restoreState }:
     /// صفحه‌های باز روی تب‌ها بسته می‌شن و state خودِ تب‌ها (اسکرول، داده) حفظ می‌شه
     func selectTab(_ t: AppTab) {
@@ -95,8 +129,13 @@ final class AppNavigator: ObservableObject {
         let brandSlug = firstGroup(#"/brand/([^/?]+)"#, path)
         let categorySlug = components?.queryItems?.first(where: { $0.name == "cat" })?.value
         let trimmedPath = path.hasSuffix("/") ? String(path.dropLast()) : path
+        let discountCode = firstGroup(#"^/discount/([^/?]+)"#, path)?.removingPercentEncoding
         if isSiteLink, let productSlug {
             navigate(.productDetail(slug: productSlug))
+        } else if isSiteLink, let discountCode, !discountCode.isBlankShk {
+            // لینک کمپین کد تخفیف: کد ذخیره می‌شه و در تسویه‌حساب خودکار اعمال می‌شه (صفحه‌ی اصلی می‌مونه)
+            CampaignDiscountStore.save(discountCode)
+            ShkToast.shared.show("کد تخفیف ذخیره شد و در مرحله‌ی پرداخت اعمال می‌شود.", long: true)
         } else if isSiteLink && trimmedPath == "/tools" {
             navigate(.tools)
         } else if isSiteLink && trimmedPath == "/tools/hdd-calculator" {
@@ -227,7 +266,7 @@ struct AppRoot: View {
             )
         }
         // مودال‌های صفحه‌ها (روی کل پنجره، مثل SiteDialog اندروید)
-        .siteDialog(isPresented: Binding(get: { dialogCenter.dialog != nil }, set: { if !$0 { dialogCenter.dismiss() } })) {
+        .siteDialog(isPresented: Binding(get: { dialogCenter.dialog != nil }, set: { if !$0 { dialogCenter.dismissFromOutside() } })) {
             dialogCenter.dialog
         }
         .onAppear {
@@ -354,6 +393,55 @@ struct AppRoot: View {
             ProductDescriptionScreen(title: title, html: html, onBack: { navigator.popBackStack() })
         case .fullSpecs(let groups):
             FullSpecsScreen(groups: groups, onBack: { navigator.popBackStack() })
+        case .checkout:
+            CheckoutScreen(
+                onBack: { navigator.popBackStack() },
+                onGoToAddresses: { navigator.navigate(.addresses) },
+                // ادغام تسویه‌حساب و انتخاب درگاه: مستقیم به درگاه/کارت‌به‌کارت/نتیجه
+                onOpenGateway: { navigator.navigate(.paymentWebView) },
+                onOpenCardToCard: { navigator.navigate(.cardToCard) },
+                onCoordinatedPlaced: { orderUuid in
+                    navigator.navigate(.orderResult(kind: .PENDING_COORDINATION, uuid: orderUuid), popUpTo: { $0 == .checkout }, inclusive: true)
+                }
+            )
+        case .cartPrefactor:
+            CartPrefactorScreen(onBack: { navigator.popBackStack() })
+        case .addresses:
+            AddressListScreen(
+                onBack: { navigator.popBackStack() },
+                onAddAddress: { navigator.navigate(.addressForm(id: nil)) },
+                onEditAddress: { address in navigator.navigate(.addressForm(id: address.id)) }
+            )
+        case .addressForm(let id):
+            AddressFormScreen(
+                addressId: id,
+                onBack: { navigator.popBackStack() },
+                onSaved: { navigator.popBackStack() },
+                onPickLocation: { navigator.navigate(.mapPicker) }
+            )
+            .id(id ?? -1)
+        case .mapPicker:
+            MapPickerScreen(onBack: { navigator.popBackStack() }, onConfirm: { _, _ in navigator.popBackStack() })
+        case .paymentWebView:
+            PaymentWebViewScreen(onResult: { isSuccess, orderUuid in
+                navigator.navigate(.orderResult(kind: isSuccess ? .SUCCESS : .FAILED, uuid: orderUuid),
+                                   popUpTo: { $0 == .paymentWebView }, inclusive: true)
+            })
+        case .cardToCard:
+            CardToCardScreen(
+                onBack: { navigator.popBackStack() },
+                onSubmitted: { orderUuid in
+                    navigator.navigate(.orderResult(kind: .PENDING_REVIEW, uuid: orderUuid), popUpTo: { $0 == .checkout }, inclusive: true)
+                }
+            )
+        case .orderResult(let kind, let uuid):
+            OrderResultScreen(
+                kind: kind,
+                orderUuid: uuid?.isBlankShk == false ? uuid : nil,
+                onBackToHome: { navigator.selectTab(.HOME) },
+                // بازطراحی: دکمه‌ی ثانویه‌ی «مشاهده‌ی سفارش‌های من» در صفحه‌ی نتیجه
+                onViewOrders: { navigator.navigateFromHome(.ordersList) }
+            )
         default:
             ComingSoonScreen(title: route.placeholderTitle, icon: RemixIcons.HammerLine, onBack: { navigator.popBackStack() })
         }

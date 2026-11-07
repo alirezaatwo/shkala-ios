@@ -811,10 +811,23 @@ extension View {
 final class ShkDialogCenter: ObservableObject {
     static let shared = ShkDialogCenter()
     @Published private(set) var dialog: AnyView? = nil
+    /// معادل onDismissRequest اندروید: بسته شدن با لمس بیرون مودال
+    private var onDismissRequest: (() -> Void)? = nil
 
-    func show<V: View>(@ViewBuilder _ content: () -> V) {
+    func show<V: View>(onDismissRequest: (() -> Void)? = nil, @ViewBuilder _ content: () -> V) {
+        self.onDismissRequest = onDismissRequest
         dialog = AnyView(content())
     }
 
-    func dismiss() { dialog = nil }
+    func dismiss() {
+        dialog = nil
+        onDismissRequest = nil
+    }
+
+    /// بسته شدن با لمس بیرون: اول callback صفحه، بعد بستن
+    func dismissFromOutside() {
+        let callback = onDismissRequest
+        dismiss()
+        callback?()
+    }
 }
