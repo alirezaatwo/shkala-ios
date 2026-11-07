@@ -2,9 +2,8 @@ import Foundation
 
 /// معادل StartupViewModel اپ اندروید: بارگذاری واقعی اپ هم‌زمان با اسپلش، با درصد پیشرفت.
 ///
-/// مرحله‌ی ۱ (اسکلت): فقط بررسی اتصال اینترنت و در دسترس بودن سرور (api/v2/site-info).
-/// مراحل کامل اندروید (وضعیت بروزرسانی سایت، اطلاعات پایه، ماژول‌های صفحه‌ی اصلی) در
-/// مرحله‌ی ۲ (لایه‌ی API) دقیقاً با همان وزن‌ها اضافه می‌شن.
+/// همان مراحل و وزن‌های اندروید: ورود (۱۵)، وضعیت بروزرسانی سایت، اطلاعات پایه‌ی سایت (۱۵)،
+/// ماژول‌های صفحه‌ی اصلی (۷۰ - همراه صفحه‌ی اصلی در مرحله‌ی ۳).
 final class StartupViewModel: ObservableObject {
     @Published private(set) var progress = 0
     /// اگه بارگذاری اولیه به‌خاطر نبودِ اینترنت (یا در دسترس نبودن سرور) ممکن نشد، متن خطا اینجاست
@@ -34,6 +33,7 @@ final class StartupViewModel: ObservableObject {
         return newTask
     }
 
+    /// تمام مراحل بارگذاری اولیه‌ی اپ رو به‌ترتیب اجرا می‌کنه (StartupViewModel.run اندروید)
     @MainActor
     private func run() async {
         // مرحله‌ی ۰: اگه گوشی اصلاً به اینترنت وصل نیست، بی‌دلیل منتظر تایم‌اوت درخواست‌ها نمی‌مونیم
@@ -42,30 +42,37 @@ final class StartupViewModel: ObservableObject {
             offlineMessage = Self.MESSAGE_NO_INTERNET
             return
         }
-        progress = Self.WEIGHT_AUTH
 
-        // مرحله‌ی ۲: در دسترس بودن سرور فروشگاه
-        var request = URLRequest(url: URL(string: "\(ApiConstants.BASE_URL)api/v2/site-info")!)
-        request.timeoutInterval = 20
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let reachable: Bool
-        do {
-            let (_, response) = try await URLSession.shared.data(for: request)
-            reachable = (response as? HTTPURLResponse).map { $0.statusCode < 500 || $0.statusCode == 503 } ?? false
-        } catch {
-            reachable = false
+        // مرحله‌ی ۱: بررسی وضعیت ورود کاربر (خوندن توکن ذخیره‌شده)
+        _ = TokenManager.shared.getTokenOnce()
+        progress = Self.WEIGHT_AUTH / 2
+
+        // مرحله‌ی ۱.۵: وضعیت «در حال بروزرسانی» سایت، قبل از نمایش هر صفحه‌ای از اپ؛
+        // تا اگه سایت در حالت بروزرسانیه، کاربر مستقیم از اسپلش به صفحه‌ی بروزرسانی بره
+        let status = await fetchMaintenanceStatus()
+        MaintenanceStatusCache.prime(status)
+        progress = Self.WEIGHT_AUTH
+        if offlineMessage != nil || Task.isCancelled { return }
+        if status?.maintenance == true {
+            // در حالت بروزرسانی نیازی به بارگذاری صفحه‌ی اصلی نیست
+            progress = 100
+            return
         }
-        if offlineMessage != nil { return }
-        if !reachable {
+
+        // مرحله‌ی ۲: اطلاعات پایه‌ی سایت (نام فروشگاه و لوگو) - در SiteInfoCache نگه‌داری می‌شه
+        let siteInfoResult = await CatalogRepository().getSiteInfo()
+        if case .success(let info) = siteInfoResult {
+            SiteInfoCache.prime(name: info.siteName, logo: info.logoUrl, logoDark: info.logoDarkUrl)
+        } else if status == nil {
+            // هیچ‌کدوم از دو درخواست اول به سرور نرسید: یا اینترنت قطع شده یا سرور در دسترس نیست؛
+            // به‌جای ورود به اپِ خالی، صفحه‌ی «عدم دسترسی» با دکمه‌ی تلاش مجدد نمایش داده می‌شه
             offlineMessage = NetworkMonitor.shared.isInternetAvailable ? Self.MESSAGE_SERVER_UNREACHABLE : Self.MESSAGE_NO_INTERNET
             return
         }
+        if offlineMessage != nil || Task.isCancelled { return }
         progress = Self.WEIGHT_AUTH + Self.WEIGHT_SITE_INFO
+
+        // مرحله‌ی ۳: تمام ماژول‌های صفحه‌ی اصلی - همراه صفحه‌ی اصلی در مرحله‌ی ۳ اضافه می‌شه
         progress = 100
     }
-}
-
-enum ApiConstants {
-    /// آدرس سایت (با اسلش انتهایی) - همان BASE_URL اپ اندروید
-    static let BASE_URL = "https://shkala.com/"
 }

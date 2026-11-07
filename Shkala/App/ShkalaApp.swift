@@ -18,6 +18,8 @@ struct RootView: View {
     @State private var stage: AppStage = .splash
     /// هر بار «تلاش مجدد» = بارگذاری مجدد کامل اپ از اسپلش (مثل recreate() اندروید)
     @State private var launchId = UUID()
+    /// موقت تا مرحله‌ی ۳ (صفحه‌ی حساب): نمایش صفحه‌ی ورود روی صفحه‌ی اصلی
+    @State private var showAuth = false
 
     private let screenshot = ScreenshotMode.current
 
@@ -44,10 +46,29 @@ struct RootView: View {
                 })
                 .systemBarsBackground()
             case .main:
-                MainPlaceholderScreen(
-                    isDarkTheme: themePreference.isDarkTheme,
-                    onToggleTheme: { themePreference.setDarkTheme(!themePreference.isDarkTheme) }
-                )
+                // معادل MaintenanceGate { AppRoot } + لایه‌ی همیشگی گفتینو
+                ZStack {
+                    MaintenanceGate {
+                        ZStack {
+                            MainPlaceholderScreen(
+                                isDarkTheme: themePreference.isDarkTheme,
+                                onToggleTheme: { themePreference.setDarkTheme(!themePreference.isDarkTheme) },
+                                onOpenAuth: { showAuth = true }
+                            )
+                            if showAuth {
+                                AuthScreen(onLoginSuccess: { showAuth = false })
+                                    // موقت: دکمه‌ی بستن تا وقتی صفحه‌ی ورود داخل تب حساب (مرحله‌ی ۳) قرار بگیره
+                                    .overlay(alignment: .topLeading) {
+                                        SiteIconButton(icon: RemixIcons.CloseLine, contentDescription: "بستن", onClick: { showAuth = false }, tint: .white, background: Color.white.opacity(0.18))
+                                            .padding(12)
+                                    }
+                                    .transition(.move(edge: .bottom))
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.3), value: showAuth)
+                    }
+                    GoftinoChatOverlay()
+                }
                 .systemBarsBackground()
             }
         }
@@ -71,6 +92,19 @@ struct RootView: View {
             IntroScreen(onFinish: {}, initialPage: page).systemBarsBackground()
         case .main:
             MainPlaceholderScreen(isDarkTheme: mode.dark, onToggleTheme: {}).systemBarsBackground()
+        case .auth(let state):
+            AuthScreen(onLoginSuccess: {}, viewModel: ScreenshotMode.authViewModel(state)).systemBarsBackground()
+        case .maintenance(let countdown):
+            MaintenanceScreen(
+                title: nil,
+                description: "برای ارائه‌ی تجربه‌ای بهتر، فروشگاه سیما حفاظ خزر در حال بروزرسانی است و به‌زودی با امکانات تازه برمی‌گردیم. از شکیبایی شما سپاسگزاریم.",
+                contacts: AppContactsDto(
+                    mobile1: "09120398602", mobile2: "09115585589", landline: "01333234659",
+                    whatsappUrl: "http://wa.me/+989120398602", baleUrl: "https://web.bale.ai/chat?uid=1061321461"
+                ),
+                endsAtMillis: countdown ? nowMs() + ((2 * 3600 + 15 * 60 + 42) * 1000) : nil
+            )
+            .systemBarsBackground()
         }
     }
 }
@@ -114,13 +148,56 @@ private struct SplashStage: View {
 }
 
 /// حالت عکس‌برداری خودکار در CI: با آرگومان اجرای «-shkScreen <نام>» یک صفحه‌ی ثابت نمایش داده می‌شه.
-/// نمونه‌ها: splash:1200 ، splash:3750 ، splash-offline ، intro:0 ، intro:5 ، main  (و «-shkDark» برای تم تاریک)
+/// نمونه‌ها: splash:1200 ، splash:3750 ، splash-offline ، intro:0 ، intro:5 ، main ، auth:code ، maintenance ،
+/// maintenance-countdown  (و «-shkDark» برای تم تاریک)
 struct ScreenshotMode {
     enum Screen {
         case splash(Double)
         case splashOffline
         case intro(Int)
         case main
+        case auth(String)
+        case maintenance(Bool)
+    }
+
+    static var isActive: Bool { current != nil }
+
+    /// وضعیت‌های نمایشی صفحه‌ی ورود: phone / phone-error / password / code / code-error / code-success
+    @MainActor
+    static func authViewModel(_ name: String) -> AuthViewModel {
+        let vm = AuthViewModel()
+        var s = AuthUiState()
+        switch name {
+        case "phone-error":
+            s.phone = "0912"
+            s.errorMessage = "شماره موبایل معتبر نیست. مثال: 09123456789"
+        case "password":
+            s.loginMode = .PASSWORD
+            s.phone = "09123456789"
+            s.password = "secret12"
+        case "code":
+            s.step = .ENTER_CODE
+            s.phone = "09123456789"
+            s.code = "48"
+            s.remainingSeconds = 97
+        case "code-error":
+            s.step = .ENTER_CODE
+            s.phone = "09123456789"
+            s.code = "48213"
+            s.remainingSeconds = 0
+            s.otpStatus = .error
+            s.errorMessage = "کد تایید اشتباه است."
+        case "code-success":
+            s.step = .ENTER_CODE
+            s.phone = "09123456789"
+            s.code = "48213"
+            s.remainingSeconds = 45
+            s.otpStatus = .success
+        default:
+            break
+        }
+        vm.debugSetState(s)
+        return vm
     }
 
     let screen: Screen
@@ -137,6 +214,9 @@ struct ScreenshotMode {
         case "splash": screen = .splash(Double(parts.count > 1 ? parts[1] : "") ?? SPLASH_LOGO_MOTION_MS)
         case "splash-offline": screen = .splashOffline
         case "intro": screen = .intro(Int(parts.count > 1 ? parts[1] : "") ?? 0)
+        case "auth": screen = .auth(parts.count > 1 ? parts[1] : "phone")
+        case "maintenance": screen = .maintenance(false)
+        case "maintenance-countdown": screen = .maintenance(true)
         default: screen = .main
         }
         return ScreenshotMode(screen: screen, dark: dark)
