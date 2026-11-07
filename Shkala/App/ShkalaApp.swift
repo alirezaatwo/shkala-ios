@@ -88,6 +88,10 @@ struct RootView: View {
                 .task { await ScreenshotMode.openProduct(slug) }
         case .cart:
             AppRoot(isDarkTheme: mode.dark, initialCartOpen: true).systemBarsBackground()
+        case .route(let name):
+            AppRoot(isDarkTheme: mode.dark)
+                .systemBarsBackground()
+                .task { ScreenshotMode.openRoute(name) }
         case .maintenance(let countdown):
             MaintenanceScreen(
                 title: nil,
@@ -156,6 +160,25 @@ struct ScreenshotMode {
         // مرحله‌ی ۴: صفحه‌ی محصول (اسلاگ خالی = پربازدیدترین محصول موجود) و شیت سبد خرید
         case product(String)
         case cart
+        // صفحه‌های تسویه‌حساب/پرداخت/سفارش‌ها که بدون ورود هم باز می‌شن (route:<نام>)
+        case route(String)
+    }
+
+    /// فقط عکس‌برداری: باز کردن یک صفحه‌ی ثابت روی پشته‌ی ناوبری
+    @MainActor
+    static func openRoute(_ name: String) {
+        let nav = AppNavigator.shared
+        switch name {
+        case "order-success": nav.navigate(.orderResult(kind: .SUCCESS, uuid: "8f3a21c7"))
+        case "order-review": nav.navigate(.orderResult(kind: .PENDING_REVIEW, uuid: "8f3a21c7"))
+        case "order-coordination": nav.navigate(.orderResult(kind: .PENDING_COORDINATION, uuid: "8f3a21c7"))
+        case "order-failed": nav.navigate(.orderResult(kind: .FAILED, uuid: nil))
+        case "address-form": nav.navigate(.addressForm(id: nil))
+        case "map": nav.navigate(.mapPicker)
+        case "orders": nav.navigate(.ordersList)
+        case "checkout": nav.navigate(.checkout)
+        default: break
+        }
     }
 
     static var isActive: Bool { current != nil }
@@ -237,6 +260,7 @@ struct ScreenshotMode {
         case "maintenance-countdown": screen = .maintenance(true)
         case "product": screen = .product(parts.count > 1 ? parts[1...].joined(separator: ":") : "")
         case "cart": screen = .cart
+        case "route": screen = .route(parts.count > 1 ? parts[1] : "")
         default: screen = .main
         }
         var scrollY: CGFloat = 0

@@ -70,6 +70,16 @@ WAIT=12 shot 45-product-scroll-5  -shkScreen product -shkScrollY 3500
 WAIT=12 shot 46-product-bottom    -shkScreen product -shkScrollY 99999
 WAIT=12 shot 47-product-dark      -shkScreen product -shkDark
 WAIT=8  shot 48-cart-sheet        -shkScreen cart
+# صفحه‌های بعد از سبد (بدون ورود): نتیجه‌ی سفارش، فرم آدرس، نقشه، سفارش‌ها، تسویه‌حساب
+WAIT=8  shot 50-order-success     -shkScreen route:order-success
+WAIT=8  shot 51-order-review      -shkScreen route:order-review
+WAIT=8  shot 52-order-coord       -shkScreen route:order-coordination
+WAIT=8  shot 53-order-failed      -shkScreen route:order-failed
+WAIT=8  shot 54-order-success-dk  -shkScreen route:order-success -shkDark
+WAIT=8  shot 55-address-form      -shkScreen route:address-form
+WAIT=14 shot 56-map-picker        -shkScreen route:map
+WAIT=10 shot 57-orders            -shkScreen route:orders
+WAIT=10 shot 58-checkout          -shkScreen route:checkout
 shot 21-maintenance     -shkScreen maintenance
 shot 22-maint-countdown -shkScreen maintenance-countdown
 shot 23-maint-dark      -shkScreen maintenance-countdown -shkDark
