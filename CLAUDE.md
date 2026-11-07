@@ -5,6 +5,8 @@
 - USER RULE: the iOS app is an EXACT copy of the Android app (repo alirezaatwo/shkala-android, Kotlin/Compose).
   Port each screen line by line from its Kotlin file: same layout, sizes (dp -> pt, sp -> pt), colors, texts,
   icons (RemixIcons names are identical), timings and behavior. Only OS-forced differences are allowed; list them.
+- USER RULE (2026-11-07): the iOS version always equals the Android version: project.yml MARKETING_VERSION = Android
+  versionName, CURRENT_PROJECT_VERSION = Android versionCode (now 3.0 / 21). Bump both in every port PR.
 - Names mirror Android: Color.kt -> ShkColors, MaterialTheme.colorScheme -> @Environment(\.shkColors),
   isAppInDarkTheme() -> @Environment(\.shkIsDark), RemixIcon(...) -> RemixIcon(...), Typography -> ShkTextStyle / .shkFont().
 - Whole app is RTL (ShkalaTheme sets layoutDirection). Canvas/pager code that must not mirror forces .leftToRight locally.
