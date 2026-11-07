@@ -114,7 +114,8 @@ struct ProductVariantPickers: View {
                 HStack(spacing: 0) {
                     Text(propName).shkFont(13, .bold).foregroundColor(colors.onSurface)
                     if let selectedValue = state.selections[propName], !selectedValue.isBlankShk {
-                        Text(": \(selectedValue)").shkFont(12).foregroundColor(colors.onSurfaceVariant).lineLimit(1)
+                        // نویسه‌ی RLM اول متن: جهت پاراگراف راست‌به‌چپ می‌مونه تا «:» مثل اندروید کنار عنوان بیاد
+                        Text("\u{200F}: \(selectedValue)").shkFont(12).foregroundColor(colors.onSurfaceVariant).lineLimit(1)
                     }
                 }
                 Spacer().frame(height: 10)
