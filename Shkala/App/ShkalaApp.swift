@@ -18,8 +18,6 @@ struct RootView: View {
     @State private var stage: AppStage = .splash
     /// هر بار «تلاش مجدد» = بارگذاری مجدد کامل اپ از اسپلش (مثل recreate() اندروید)
     @State private var launchId = UUID()
-    /// موقت تا مرحله‌ی ۳ (صفحه‌ی حساب): نمایش صفحه‌ی ورود روی صفحه‌ی اصلی
-    @State private var showAuth = false
 
     private let screenshot = ScreenshotMode.current
 
@@ -49,23 +47,10 @@ struct RootView: View {
                 // معادل MaintenanceGate { AppRoot } + لایه‌ی همیشگی گفتینو
                 ZStack {
                     MaintenanceGate {
-                        ZStack {
-                            MainPlaceholderScreen(
-                                isDarkTheme: themePreference.isDarkTheme,
-                                onToggleTheme: { themePreference.setDarkTheme(!themePreference.isDarkTheme) },
-                                onOpenAuth: { showAuth = true }
-                            )
-                            if showAuth {
-                                AuthScreen(onLoginSuccess: { showAuth = false })
-                                    // موقت: دکمه‌ی بستن تا وقتی صفحه‌ی ورود داخل تب حساب (مرحله‌ی ۳) قرار بگیره
-                                    .overlay(alignment: .topLeading) {
-                                        SiteIconButton(icon: RemixIcons.CloseLine, contentDescription: "بستن", onClick: { showAuth = false }, tint: .white, background: Color.white.opacity(0.18))
-                                            .padding(12)
-                                    }
-                                    .transition(.move(edge: .bottom))
-                            }
-                        }
-                        .animation(.easeInOut(duration: 0.3), value: showAuth)
+                        AppRoot(
+                            isDarkTheme: themePreference.isDarkTheme,
+                            onToggleTheme: { themePreference.setDarkTheme(!themePreference.isDarkTheme) }
+                        )
                     }
                     GoftinoChatOverlay()
                 }
@@ -91,7 +76,10 @@ struct RootView: View {
         case .intro(let page):
             IntroScreen(onFinish: {}, initialPage: page).systemBarsBackground()
         case .main:
-            MainPlaceholderScreen(isDarkTheme: mode.dark, onToggleTheme: {}).systemBarsBackground()
+            // صفحه‌ی اصلی با داده‌ی زنده‌ی سایت (شبیه‌ساز CI به shkala.com دسترسی داره)
+            AppRoot(isDarkTheme: mode.dark).systemBarsBackground()
+        case .drawer:
+            AppRoot(isDarkTheme: mode.dark, initialDrawerOpen: true).systemBarsBackground()
         case .auth(let state):
             AuthScreen(onLoginSuccess: {}, viewModel: ScreenshotMode.authViewModel(state)).systemBarsBackground()
         case .maintenance(let countdown):
@@ -149,13 +137,14 @@ private struct SplashStage: View {
 
 /// حالت عکس‌برداری خودکار در CI: با آرگومان اجرای «-shkScreen <نام>» یک صفحه‌ی ثابت نمایش داده می‌شه.
 /// نمونه‌ها: splash:1200 ، splash:3750 ، splash-offline ، intro:0 ، intro:5 ، main ، auth:code ، maintenance ،
-/// maintenance-countdown  (و «-shkDark» برای تم تاریک)
+/// maintenance-countdown ، drawer  (و «-shkDark» برای تم تاریک، «-shkScrollY 1200» برای اسکرول صفحه‌ی اصلی)
 struct ScreenshotMode {
     enum Screen {
         case splash(Double)
         case splashOffline
         case intro(Int)
         case main
+        case drawer
         case auth(String)
         case maintenance(Bool)
     }
@@ -202,6 +191,8 @@ struct ScreenshotMode {
 
     let screen: Screen
     let dark: Bool
+    /// «-shkScrollY <عدد>»: اسکرول صفحه‌ی اصلی به این موقعیت (pt) برای عکس از بخش‌های پایین
+    var scrollY: CGFloat = 0
 
     static let current: ScreenshotMode? = {
         let args = ProcessInfo.processInfo.arguments
@@ -215,10 +206,37 @@ struct ScreenshotMode {
         case "splash-offline": screen = .splashOffline
         case "intro": screen = .intro(Int(parts.count > 1 ? parts[1] : "") ?? 0)
         case "auth": screen = .auth(parts.count > 1 ? parts[1] : "phone")
+        case "drawer": screen = .drawer
         case "maintenance": screen = .maintenance(false)
         case "maintenance-countdown": screen = .maintenance(true)
         default: screen = .main
         }
-        return ScreenshotMode(screen: screen, dark: dark)
+        var scrollY: CGFloat = 0
+        if let j = args.firstIndex(of: "-shkScrollY"), j + 1 < args.count, let v = Double(args[j + 1]) { scrollY = CGFloat(v) }
+        return ScreenshotMode(screen: screen, dark: dark, scrollY: scrollY)
     }()
+}
+
+/// فقط عکس‌برداری CI: پیدا کردن UIScrollView والد و اسکرول به موقعیت y (بعد از بارگذاری داده‌ها)
+struct ScreenshotScrollOffset: UIViewRepresentable {
+    let y: CGFloat
+
+    func makeUIView(context: Context) -> UIView {
+        let v = UIView(frame: .zero)
+        v.isUserInteractionEnabled = false
+        guard y > 0 else { return v }
+        // چند بار تلاش، چون محتوای صفحه بعد از رسیدن داده‌های سرور بلند می‌شه
+        for delay in [2.5, 4.0, 5.5] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak v] in
+                var s = v?.superview
+                while s != nil && !(s is UIScrollView) { s = s?.superview }
+                guard let scroll = s as? UIScrollView else { return }
+                let maxY = max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+                scroll.setContentOffset(CGPoint(x: 0, y: min(y, maxY) - scroll.adjustedContentInset.top), animated: false)
+            }
+        }
+        return v
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }

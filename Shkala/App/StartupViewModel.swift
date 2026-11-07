@@ -3,7 +3,7 @@ import Foundation
 /// معادل StartupViewModel اپ اندروید: بارگذاری واقعی اپ هم‌زمان با اسپلش، با درصد پیشرفت.
 ///
 /// همان مراحل و وزن‌های اندروید: ورود (۱۵)، وضعیت بروزرسانی سایت، اطلاعات پایه‌ی سایت (۱۵)،
-/// ماژول‌های صفحه‌ی اصلی (۷۰ - همراه صفحه‌ی اصلی در مرحله‌ی ۳).
+/// ماژول‌های صفحه‌ی اصلی (۷۰).
 final class StartupViewModel: ObservableObject {
     @Published private(set) var progress = 0
     /// اگه بارگذاری اولیه به‌خاطر نبودِ اینترنت (یا در دسترس نبودن سرور) ممکن نشد، متن خطا اینجاست
@@ -72,7 +72,11 @@ final class StartupViewModel: ObservableObject {
         if offlineMessage != nil || Task.isCancelled { return }
         progress = Self.WEIGHT_AUTH + Self.WEIGHT_SITE_INFO
 
-        // مرحله‌ی ۳: تمام ماژول‌های صفحه‌ی اصلی - همراه صفحه‌ی اصلی در مرحله‌ی ۳ اضافه می‌شه
+        // مرحله‌ی ۳: تمام ماژول‌های صفحه‌ی اصلی (موازی) - نتیجه مستقیم توی کش صفحه‌ی اصلی می‌ره
+        // تا وقتی صفحه‌ی اصلی نمایش داده می‌شه، اسپینر دومی نشون داده نشه (فاز ۲۰ اندروید)
+        let home = await HomeViewModel.fetchHomeModules(CatalogRepository(), ProductSortFilter())
+        if offlineMessage != nil || Task.isCancelled { return }
+        HomeViewModel.primeCache(home)
         progress = 100
     }
 }
