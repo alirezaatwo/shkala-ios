@@ -374,6 +374,41 @@ enum ApiService {
         try await api.call(.post, "api/v2/profile/change-password", form: ["current": current, "new": new, "new_confirmation": newConfirmation], as: SimpleStatusResponse.self)
     }
 
+    // ---- کیف پول ----
+
+    static func getWalletInfo() async throws -> ApiResponse<WalletInfoResponse> {
+        try await api.call(.get, "api/v2/wallet", as: WalletInfoResponse.self)
+    }
+
+    static func chargeWallet(amount: Int64, paymentGateway: String) async throws -> ApiResponse<WalletChargeResponse> {
+        try await api.call(.post, "api/v2/wallet/charge", form: ["amount": String(amount), "payment_gateway": paymentGateway], as: WalletChargeResponse.self)
+    }
+
+    static func addWithdrawal(amount: Int64, bankCardId: Int) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/wallet/withdrawals", form: ["amount": String(amount), "bank_card": String(bankCardId)], as: SimpleStatusResponse.self)
+    }
+
+    static func deleteWithdrawal(_ id: Int) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.delete, "api/v2/wallet/withdrawals/\(id)", as: SimpleStatusResponse.self)
+    }
+
+    static func addBankCard(name: String, cardNumber: String, shebaNumber: String) async throws -> ApiResponse<AddBankCardResponse> {
+        try await api.call(.post, "api/v2/wallet/bank-cards", form: ["name": name, "card_number": cardNumber, "sheba_number": shebaNumber], as: AddBankCardResponse.self)
+    }
+
+    static func deleteBankCard(_ id: Int) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.delete, "api/v2/wallet/bank-cards/\(id)", as: SimpleStatusResponse.self)
+    }
+
+    // ویرایش کارت بانکی (مسیر جدید API؛ سایت فقط افزودن/حذف داره)
+    static func updateBankCard(id: Int, name: String, cardNumber: String, shebaNumber: String) async throws -> ApiResponse<AddBankCardResponse> {
+        try await api.call(.post, "api/v2/wallet/bank-cards/\(id)/update", form: ["name": name, "card_number": cardNumber, "sheba_number": shebaNumber], as: AddBankCardResponse.self)
+    }
+
+    static func getLastChargeTransaction() async throws -> ApiResponse<LastChargeTransactionResponse> {
+        try await api.call(.get, "api/v2/wallet/last-charge-transaction", as: LastChargeTransactionResponse.self)
+    }
+
     static func getSessions() async throws -> ApiResponse<SessionsResponse> {
         try await api.call(.get, "api/v2/sessions", as: SessionsResponse.self)
     }

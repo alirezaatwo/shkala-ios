@@ -39,6 +39,12 @@ enum AppRoute: Hashable {
     case orderDetail(id: Int)
     // مرحله‌ی ۵: منوهای «حساب من»
     case wallet
+    case walletCharge
+    case walletChargeWebView
+    case walletChargeResult(success: Bool)
+    case walletWithdrawal
+    case walletAddCard
+    case walletEditCard
     case transactionsList
     case prefactorsList
     case ticketsList
@@ -85,6 +91,61 @@ enum AppRoute: Hashable {
         case .ordersList: return "سفارش‌های من"
         case .orderDetail: return "جزئیات سفارش"
         case .wallet: return "کیف پول"
+        case .walletCharge: return "شارژ کیف پول"
+        case .walletChargeWebView: return "پرداخت"
+        case .walletChargeResult: return "نتیجه‌ی شارژ"
+        case .walletWithdrawal: return "درخواست برداشت"
+        case .walletAddCard: return "افزودن کارت بانکی"
+        case .walletEditCard: return "ویرایش کارت بانکی"
+        case .wallet:
+            WalletScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenCharge: { navigator.navigate(.walletCharge) },
+                onOpenWithdraw: { navigator.navigate(.walletWithdrawal) },
+                onOpenAddCard: { navigator.navigate(.walletAddCard) },
+                onOpenEditCard: { card in
+                    WalletFlowState.shared.editingCard = card
+                    navigator.navigate(.walletEditCard)
+                }
+            )
+        case .walletCharge:
+            ChargeWalletScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenGateway: { navigator.navigate(.walletChargeWebView) }
+            )
+        case .walletChargeWebView:
+            WalletChargeWebViewScreen(onResult: { isSuccess in
+                navigator.navigate(.walletChargeResult(success: isSuccess), popUpTo: { $0 == .wallet }, inclusive: false)
+            })
+        case .walletChargeResult(let isSuccess):
+            WalletChargeResultScreen(
+                isSuccess: isSuccess,
+                onBackToWallet: {
+                    navigator.navigate(.wallet, popUpTo: { $0 == .wallet }, inclusive: true)
+                }
+            )
+        case .walletWithdrawal:
+            WithdrawalRequestScreen(
+                onBack: { navigator.popBackStack() },
+                onSubmitted: { navigator.popBackStack() },
+                onAddCard: { navigator.navigate(.walletAddCard) }
+            )
+        case .walletAddCard:
+            AddBankCardScreen(
+                onBack: { navigator.popBackStack() },
+                onSaved: { navigator.popBackStack() }
+            )
+        // ویرایش کارت بانکی: همون صفحه‌ی افزودن کارت با اطلاعات کارت انتخاب‌شده
+        case .walletEditCard:
+            if let editingCard = WalletFlowState.shared.editingCard {
+                AddBankCardScreen(
+                    onBack: { navigator.popBackStack() },
+                    onSaved: { navigator.popBackStack() },
+                    editCard: editingCard
+                )
+            } else {
+                Color.clear.onAppear { navigator.popBackStack() }
+            }
         case .editProfile:
             EditProfileScreen(onBack: { navigator.popBackStack() })
         case .transactionsList: return "تراکنش‌های من"

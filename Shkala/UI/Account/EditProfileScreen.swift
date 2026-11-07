@@ -217,7 +217,7 @@ struct EditProfileScreen: View {
                     .padding(.vertical, 12)
                     .frame(maxWidth: .infinity)
                     .background(
-                        UnevenRoundedRectangleCompat(topLeading: 20, topTrailing: 20)
+                        TopRoundedShape(radius: 20)
                             .fill(colors.surface)
                             .ignoresSafeArea(edges: .bottom)
                     )
@@ -348,26 +348,6 @@ struct EditProfileScreen: View {
 /// بستن صفحه‌کلید پیش از باز شدن دیالوگ
 private func hideKeyboardShk() {
     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-}
-
-/// معادل RoundedCornerShape(topStart, topEnd) - UnevenRoundedRectangle فقط از iOS 17 هست
-private struct UnevenRoundedRectangleCompat: Shape {
-    var topLeading: CGFloat
-    var topTrailing: CGFloat
-
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: rect.minX, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.minX, y: rect.minY + topLeading))
-        p.addArc(center: CGPoint(x: rect.minX + topLeading, y: rect.minY + topLeading), radius: topLeading,
-                 startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
-        p.addLine(to: CGPoint(x: rect.maxX - topTrailing, y: rect.minY))
-        p.addArc(center: CGPoint(x: rect.maxX - topTrailing, y: rect.minY + topTrailing), radius: topTrailing,
-                 startAngle: .degrees(270), endAngle: .degrees(0), clockwise: false)
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        p.closeSubpath()
-        return p
-    }
 }
 
 /** آواتار دایره‌ای با حلقه‌ی قرمز و نشان دوربین؛ زدن روی آن گالری را باز می‌کند */
