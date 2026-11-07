@@ -505,7 +505,7 @@ private struct RecipientInfoCard: View {
 }
 
 /** آدرس تصویر ثابت نقشه از پروکسی سرور (NeshanConstants.staticMapUrl اندروید) */
-private func neshanStaticMapUrl(_ lat: Double, _ lng: Double, width: Int = 600, height: Int = 400, zoom: Int = 15) -> String {
+func neshanStaticMapUrl(_ lat: Double, _ lng: Double, width: Int = 600, height: Int = 400, zoom: Int = 15) -> String {
     "\(ApiConstants.BASE_URL)api/v2/app/static-map?lat=\(lat)&lng=\(lng)&width=\(width)&height=\(height)&zoom=\(zoom)"
 }
 

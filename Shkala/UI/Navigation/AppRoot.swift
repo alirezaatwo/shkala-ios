@@ -2,6 +2,9 @@ import SwiftUI
 
 /// مسیرهای غیرتبیِ اپ (معادل Routes اندروید). مسیرهایی که صفحه‌شون هنوز ساخته نشده موقتاً
 /// صفحه‌ی «به‌زودی» نشون می‌دن و در مراحل ۴ و ۵ یکی‌یکی جایگزین می‌شن.
+/// فاز ۳۱: اسلاگ ویژه‌ی «همه‌ی مقالات» (Routes.ALL_ARTICLES_SLUG اندروید)
+let ALL_ARTICLES_SLUG = "__all_articles__"
+
 enum AppRoute: Hashable {
     case productDetail(slug: String)
     case categoryProducts(slug: String, title: String)
@@ -16,6 +19,10 @@ enum AppRoute: Hashable {
     case contactUs
     case terms
     case magazine
+    // فهرست مقالات یک دسته‌بندی بلاگ (مرحله‌ی ۵ - بخش ۳)
+    case articleList(slug: String, title: String)
+    // صفحه‌ی یک مقاله (معادل حالت مقاله‌ی PRODUCT_DESCRIPTION اندروید)
+    case articleDetail(slug: String, title: String, html: String, imageUrl: String?)
     case faqList
     // مرحله‌ی ۴: تسویه‌ی حساب و پیش‌فاکتور سبد خرید
     case checkout
@@ -35,6 +42,28 @@ enum AppRoute: Hashable {
     // سفارش‌های من
     case ordersList
     case orderDetail(id: Int)
+    // مرحله‌ی ۵: منوهای «حساب من»
+    case wallet
+    case walletCharge
+    case walletChargeWebView
+    case walletChargeResult(success: Bool)
+    case walletWithdrawal
+    case walletAddCard
+    case walletEditCard
+    case transactionsList
+    case prefactorsList
+    // فاز ۳۲: فرم داینامیک اسکریپت (form/{slug}/{title})
+    case dynamicForm(slug: String, title: String)
+    case prefactorDetail(uuid: String)
+    case prefactorAddresses(uuid: String)
+    case ticketsList
+    case createTicket
+    case ticketDetail(id: Int)
+    case favoritesList
+    case myCommentsList
+    case recentlyViewed
+    case activeSessions
+    case editProfile
 
     /// اسلاگ‌های قراردادی فهرست‌های «مشاهده همه» صفحه‌ی اصلی (همون Routes.*_SLUG اندروید)
     static let DISCOUNT_PRODUCTS_SLUG = "__discount__"
@@ -58,6 +87,8 @@ enum AppRoute: Hashable {
         case .contactUs: return "تماس با ما"
         case .terms: return "قوانین و شرایط"
         case .magazine: return "مجله"
+        case .articleList(_, let title): return title
+        case .articleDetail(_, let title, _, _): return title
         case .faqList: return "پرسش‌های متداول"
         case .checkout: return "تسویه حساب"
         case .cartPrefactor: return "پیش‌فاکتور"
@@ -71,6 +102,26 @@ enum AppRoute: Hashable {
         case .orderResult: return "نتیجه‌ی سفارش"
         case .ordersList: return "سفارش‌های من"
         case .orderDetail: return "جزئیات سفارش"
+        case .wallet: return "کیف پول"
+        case .walletCharge: return "شارژ کیف پول"
+        case .walletChargeWebView: return "پرداخت"
+        case .walletChargeResult: return "نتیجه‌ی شارژ"
+        case .walletWithdrawal: return "درخواست برداشت"
+        case .walletAddCard: return "افزودن کارت بانکی"
+        case .walletEditCard: return "ویرایش کارت بانکی"
+        case .transactionsList: return "تراکنش‌های من"
+        case .prefactorsList: return "پیش‌فاکتورها"
+        case .dynamicForm(_, let title): return title
+        case .prefactorDetail: return "پرداخت پیش‌فاکتور"
+        case .prefactorAddresses: return "دریافت حضوری / ارسال به آدرس"
+        case .ticketsList: return "تیکت‌های پشتیبانی"
+        case .createTicket: return "ثبت تیکت جدید"
+        case .ticketDetail: return "تیکت"
+        case .favoritesList: return "علاقه‌مندی‌های من"
+        case .myCommentsList: return "دیدگاه‌های من"
+        case .recentlyViewed: return "بازدیدهای اخیر"
+        case .activeSessions: return "نشست‌های فعال"
+        case .editProfile: return "ویرایش حساب کاربری"
         }
     }
 }
@@ -175,6 +226,7 @@ struct AppRoot: View {
     @ObservedObject private var cartViewModel = CartViewModel.shared
     @ObservedObject private var loginPrompt = LoginRequiredPrompt.shared
     @ObservedObject private var dialogCenter = ShkDialogCenter.shared
+    @ObservedObject private var startupDialogs = StartupDialogsState.shared
     @Environment(\.shkColors) private var colors
 
     // فاز ۲۶: سایدبار اصلی اپ - از پشت منوی همبرگری کنار لوگوی هدر باز می‌شه
@@ -185,6 +237,10 @@ struct AppRoot: View {
     @State private var showCartSheet = false
     // شیت انتخاب نوعِ محصولِ چندگزینه‌ای (ProductQuickAddSheet) از روی کارت محصول
     @State private var quickAddProduct: ProductListItemDto? = nil
+    // تب دسته‌بندی‌ها: شناسه‌ی ساخت دوباره و تب اولیه (requestedTab ?: lastVisitedTab ?: 0)
+    @State private var categoriesEpoch = 0
+    @State private var categoriesInitialTab = 0
+    @State private var accountEpoch = 0
 
     private var isLoggedIn: Bool { tokenManager.token != nil }
 
@@ -221,10 +277,23 @@ struct AppRoot: View {
                 onOpenTools: { navigator.navigate(.tools) }
             )
 
+            // پاپ‌آپ‌های تبلیغاتی (چند پاپ‌آپ با هدف‌گیری صفحه): صفحه‌ی فعلی برای سرور + بعد از بسته شدن دیالوگ‌های
+            // شروع تا هیچ‌وقت دو دیالوگ روی هم نیفتن. صفحه‌های پرداخت، نقشه، فرم‌ها و وب‌ویوها پاپ‌آپ ندارن (nil)
+            let popupTarget = popupScreenFor(route: navigator.currentRoute, tab: navigator.tab, cartOpen: false)
+            if !showCartSheet {
+                AppPopupHost(
+                    enabled: popupTarget.screen != nil && startupDialogs.isIdle && !showAppDrawer && !goftinoVm.isChatVisible,
+                    screen: popupTarget.screen,
+                    slug: popupTarget.slug,
+                    onOpenLink: { navigator.openAppLink($0) }
+                )
+            }
+
             ShkToastHost()
         }
         // فاز ۱۴: سبد خرید تمام‌صفحه بالا میاد؛ پس‌زمینه‌ی شیت هم‌رنگ پس‌زمینه‌ی صفحه
         .sheet(isPresented: $showCartSheet) {
+            ZStack {
             CartSheetContent(
                 onClose: { showCartSheet = false },
                 onContinueShopping: {
@@ -240,6 +309,17 @@ struct AppRoot: View {
                     navigator.navigate(.cartPrefactor)
                 }
             )
+            // تفاوت iOS: شیت سبد خرید روی کل پنجره‌ست؛ پاپ‌آپ صفحه‌ی «cart» داخل خود شیت نمایش داده می‌شه
+            AppPopupHost(
+                enabled: startupDialogs.isIdle && !goftinoVm.isChatVisible,
+                screen: "cart",
+                slug: nil,
+                onOpenLink: { link in
+                    showCartSheet = false
+                    navigator.openAppLink(link)
+                }
+            )
+            }
             .shkSheetEnvironment()
         }
         .sheet(item: $quickAddProduct) { product in
@@ -277,6 +357,19 @@ struct AppRoot: View {
             // تعداد روی آیکن سبد درست باشه - نه فقط وقتی کاربر سبد رو باز می‌کنه
             if isLoggedIn { cartViewModel.loadCart(silently: true) }
         }
+        // تب انتخاب‌شده از هر جای اپ (مثلاً منوی «مجله» یا لینک) هم زنده نگه داشته می‌شه
+        .onChange(of: navigator.tab) { t in visitedTabs.insert(t) }
+        .onChange(of: navigator.tab == .CATEGORIES && navigator.stack.isEmpty) { visible in
+            guard visible else { return }
+            // فاز ۳۲/۳۴: تب درخواستیِ «مجله» اولویت داره و بلافاصله پاک می‌شه؛ بعد آخرین تبی که کاربر داشت
+            let pending = PendingCategoriesTabViewModel.shared
+            categoriesInitialTab = pending.requestedTab ?? pending.lastVisitedTab ?? 0
+            pending.requestedTab = nil
+            categoriesEpoch += 1
+        }
+        .onChange(of: navigator.tab == .ACCOUNT && navigator.stack.isEmpty) { visible in
+            if visible { accountEpoch += 1 }
+        }
         .onChange(of: isLoggedIn) { loggedIn in
             if loggedIn { cartViewModel.loadCart(silently: true) } else { cartViewModel.clear() }
         }
@@ -296,9 +389,7 @@ struct AppRoot: View {
             // تب‌ها همیشه زنده می‌مونن تا اسکرول و داده‌شون حفظ بشه (saveState/restoreState اندروید)
             tabLayer(.HOME) { homeScreen }
             if visitedTabs.contains(.CATEGORIES) {
-                tabLayer(.CATEGORIES) {
-                    ComingSoonScreen(title: "دسته‌بندی", icon: RemixIcons.Apps2Line, onBack: nil)
-                }
+                tabLayer(.CATEGORIES) { categoriesScreen }
             }
             if visitedTabs.contains(.ACCOUNT) {
                 tabLayer(.ACCOUNT) { accountScreen }
@@ -359,19 +450,42 @@ struct AppRoot: View {
         )
     }
 
-    @ViewBuilder
+    /// تب دسته‌بندی‌ها: در اندروید با هر بار ورود به این مقصد (از منوی پایین یا برگشت از برند/مقاله)
+    /// صفحه از نو ساخته می‌شه؛ اینجا هم با عوض‌شدن شناسه همون اتفاق می‌افته
+    private var categoriesScreen: some View {
+        CategoriesScreen(
+            onCategoryClick: { slug, title in navigator.navigate(.categoryProducts(slug: slug, title: title)) },
+            onOpenBrand: { slug, currentTab in
+                PendingCategoriesTabViewModel.shared.lastVisitedTab = currentTab
+                navigator.navigate(.brand(slug: slug))
+            },
+            onOpenArticleCategory: { slug, title, currentTab in
+                PendingCategoriesTabViewModel.shared.lastVisitedTab = currentTab
+                navigator.navigate(.articleList(slug: slug, title: title))
+            },
+            initialTab: categoriesInitialTab
+        )
+        .id(categoriesEpoch)
+    }
+
+    /// تب «حساب من»: مثل اندروید با هر بار ورود به این مقصد از نو ساخته می‌شه (اطلاعات تازه گرفته می‌شه)
     private var accountScreen: some View {
-        if isLoggedIn {
-            // صفحه‌ی حساب کاربری در مرحله‌ی ۵ ساخته می‌شه؛ فعلاً فقط امکان خروج برای آزمایش
-            VStack(spacing: 0) {
-                ComingSoonScreen(title: "حساب من", icon: RemixIcons.UserSmileLine, onBack: nil)
-                SiteSecondaryButton(text: "خروج از حساب کاربری", onClick: { TokenManager.shared.clearSession() }, fillWidth: true)
-                    .padding(16)
-            }
-        } else {
-            // نیازی نیست کاری بکنیم؛ با تغییر توکن، همین صفحه خودکار به پروفایل تغییر می‌کنه
-            AuthScreen(onLoginSuccess: {})
-        }
+        AccountScreen(actions: AccountActions(
+            onOrdersClick: { navigator.navigate(.ordersList) },
+            onWalletClick: { navigator.navigate(.wallet) },
+            onTransactionsClick: { navigator.navigate(.transactionsList) },
+            onNotificationsClick: { navigator.navigate(.notificationsList) },
+            onPrefactorsClick: { navigator.navigate(.prefactorsList) },
+            onTicketsClick: { navigator.navigate(.ticketsList) },
+            onFavoritesClick: { navigator.navigate(.favoritesList) },
+            onCommentsClick: { navigator.navigate(.myCommentsList) },
+            onRecentlyViewedClick: { navigator.navigate(.recentlyViewed) },
+            onSessionsClick: { navigator.navigate(.activeSessions) },
+            onEditProfileClick: { navigator.navigate(.editProfile) },
+            onAddressesClick: { navigator.navigate(.addresses) },
+            onCompareClick: { navigator.navigate(.compare) }
+        ))
+        .id(accountEpoch)
     }
 
     @ViewBuilder
@@ -453,6 +567,210 @@ struct AppRoot: View {
                 onBack: { navigator.popBackStack() },
                 onProductClick: { slug in navigator.navigate(.productDetail(slug: slug)) }
             )
+        case .categoryProducts(let slug, let title):
+            let isDiscountPage = slug == AppRoute.DISCOUNT_PRODUCTS_SLUG
+            let isLatestPage = slug == AppRoute.LATEST_PRODUCTS_SLUG
+            let isMostViewedPage = slug == AppRoute.MOST_VIEWED_PRODUCTS_SLUG
+            let isSentinelSlug = isDiscountPage || isLatestPage || isMostViewedPage
+            CategoryProductsScreen(
+                categorySlug: isSentinelSlug ? nil : slug,
+                categoryTitle: title,
+                onBack: { navigator.popBackStack() },
+                onProductClick: { productSlug in navigator.navigate(.productDetail(slug: productSlug)) },
+                onSearchSubmit: { query, cat in navigator.navigate(.searchResults(query: query, categorySlug: cat)) },
+                forceDiscount: isDiscountPage,
+                forceSort: isLatestPage ? .LATEST : (isMostViewedPage ? .MOST_VIEWED : nil),
+                // فاز ۳۱: کاروسل زیردسته‌بندی‌ها - با زدن روی هرکدوم، همین صفحه دوباره برای زیردسته باز می‌شه
+                onCategoryClick: { subSlug, subTitle in navigator.navigate(.categoryProducts(slug: subSlug, title: subTitle)) }
+            )
+        case .searchResults(let query, let cat):
+            SearchResultsScreen(
+                query: query,
+                categorySlug: cat,
+                onBack: { navigator.popBackStack() },
+                onProductClick: { slug in navigator.navigate(.productDetail(slug: slug)) },
+                onSearchSubmit: { newQuery, newCat in navigator.navigate(.searchResults(query: newQuery, categorySlug: newCat)) }
+            )
+        case .brand(let brandSlug):
+            BrandScreen(
+                brandSlug: brandSlug,
+                onBack: { navigator.popBackStack() },
+                onProductClick: { productSlug in navigator.navigate(.productDetail(slug: productSlug)) }
+            )
+        case .magazine:
+            ArticleCategoriesScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenArticleCategory: { slug, title in navigator.navigate(.articleList(slug: slug, title: title)) }
+            )
+        case .articleList(let slug, let title):
+            ArticleListScreen(
+                categorySlug: slug == ALL_ARTICLES_SLUG ? nil : slug,
+                categoryTitle: title,
+                onBack: { navigator.popBackStack() },
+                onOpenArticle: { articleSlug, articleTitle, html, imageUrl in
+                    navigator.navigate(.articleDetail(slug: articleSlug, title: articleTitle, html: html, imageUrl: imageUrl))
+                }
+            )
+            .id(slug)
+        case .articleDetail(let slug, let title, let html, let imageUrl):
+            ArticleDetailScreen(articleSlug: slug, title: title, html: html, imageUrl: imageUrl, onBack: { navigator.popBackStack() })
+                .id(slug)
+        case .compare:
+            CompareScreen(onBack: { navigator.popBackStack() }, onGoHome: { navigator.selectTab(.HOME) })
+        case .webpage(let url):
+            WebPageScreen(url: url, onBack: { navigator.popBackStack() })
+        case .announcement:
+            AnnouncementScreen(onBack: { navigator.popBackStack() }, onGoHome: { navigator.selectTab(.HOME) })
+        case .inCartsNow:
+            InCartsNowScreen(onBack: { navigator.popBackStack() }, onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) })
+        case .favoritesList:
+            FavoritesScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
+        case .myCommentsList:
+            MyCommentsScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
+        case .recentlyViewed:
+            RecentlyViewedScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
+        case .notificationsList:
+            NotificationsListScreen(onBack: { navigator.popBackStack() })
+        case .activeSessions:
+            ActiveSessionsScreen(
+                onBack: { navigator.popBackStack() },
+                // نشست فعلی بسته شد: توکن پاک و برگشت به تب حساب (فرم ورود)
+                onLoggedOut: {
+                    TokenManager.shared.clearSession()
+                    navigator.selectTab(.ACCOUNT)
+                }
+            )
+        case .wallet:
+            WalletScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenCharge: { navigator.navigate(.walletCharge) },
+                onOpenWithdraw: { navigator.navigate(.walletWithdrawal) },
+                onOpenAddCard: { navigator.navigate(.walletAddCard) },
+                onOpenEditCard: { card in
+                    WalletFlowState.shared.editingCard = card
+                    navigator.navigate(.walletEditCard)
+                }
+            )
+        case .walletCharge:
+            ChargeWalletScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenGateway: { navigator.navigate(.walletChargeWebView) }
+            )
+        case .walletChargeWebView:
+            WalletChargeWebViewScreen(onResult: { isSuccess in
+                navigator.navigate(.walletChargeResult(success: isSuccess), popUpTo: { $0 == .wallet }, inclusive: false)
+            })
+        case .walletChargeResult(let isSuccess):
+            WalletChargeResultScreen(
+                isSuccess: isSuccess,
+                onBackToWallet: {
+                    navigator.navigate(.wallet, popUpTo: { $0 == .wallet }, inclusive: true)
+                }
+            )
+        case .walletWithdrawal:
+            WithdrawalRequestScreen(
+                onBack: { navigator.popBackStack() },
+                onSubmitted: { navigator.popBackStack() },
+                onAddCard: { navigator.navigate(.walletAddCard) }
+            )
+        case .walletAddCard:
+            AddBankCardScreen(
+                onBack: { navigator.popBackStack() },
+                onSaved: { navigator.popBackStack() }
+            )
+        // ویرایش کارت بانکی: همون صفحه‌ی افزودن کارت با اطلاعات کارت انتخاب‌شده
+        case .walletEditCard:
+            if let editingCard = WalletFlowState.shared.editingCard {
+                AddBankCardScreen(
+                    onBack: { navigator.popBackStack() },
+                    onSaved: { navigator.popBackStack() },
+                    editCard: editingCard
+                )
+            } else {
+                Color.clear.onAppear { navigator.popBackStack() }
+            }
+        case .editProfile:
+            EditProfileScreen(onBack: { navigator.popBackStack() })
+        case .ticketsList:
+            TicketsListScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenTicket: { id in navigator.navigate(.ticketDetail(id: id)) },
+                onCreateTicket: { navigator.navigate(.createTicket) }
+            )
+        case .createTicket:
+            CreateTicketScreen(
+                onBack: { navigator.popBackStack() },
+                onCreated: { id in
+                    navigator.navigate(.ticketDetail(id: id), popUpTo: { $0 == .ticketsList }, inclusive: false)
+                }
+            )
+        case .ticketDetail(let id):
+            TicketDetailScreen(ticketId: id, onBack: { navigator.popBackStack() })
+        case .prefactorsList:
+            PrefactorsListScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenPrefactor: { uuid in navigator.navigate(.prefactorDetail(uuid: uuid)) }
+            )
+        case .prefactorDetail(let uuid):
+            PrefactorDetailScreen(
+                uuid: uuid,
+                onBack: { navigator.popBackStack() },
+                onOpenGatewayWebView: { navigator.navigate(.paymentWebView) },
+                onPaidByWallet: { orderUuid in
+                    navigator.navigate(.orderResult(kind: .SUCCESS, uuid: orderUuid), popUpTo: { $0 == .prefactorsList }, inclusive: false)
+                },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) },
+                onOpenAddressPicker: { prefactorUuid in navigator.navigate(.prefactorAddresses(uuid: prefactorUuid)) }
+            )
+            .id(uuid)
+        case .prefactorAddresses(let prefactorUuid):
+            PrefactorAddressListScreen(
+                uuid: prefactorUuid,
+                onBack: { navigator.popBackStack() },
+                onAddAddress: { navigator.navigate(.addressForm(id: nil)) },
+                onEditAddress: { address in navigator.navigate(.addressForm(id: address.id)) }
+            )
+        case .tools:
+            ToolsScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenTool: { tool in
+                    if tool.key == HDD_CALCULATOR_KEY {
+                        navigator.navigate(.hddCalculator)
+                    } else if let url = tool.url, !url.isBlankShk {
+                        navigator.navigate(.webpage(url: url))
+                    }
+                }
+            )
+        case .hddCalculator:
+            HddCalculatorScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) },
+                onOpenLink: { url in navigator.openAppLink(url) }
+            )
+        case .faqList:
+            FaqScreen(onBack: { navigator.popBackStack() }, onOpenContact: { navigator.navigate(.contactUs) })
+        case .terms:
+            TermsScreen(onBack: { navigator.popBackStack() })
+        case .dynamicForm(let slug, let title):
+            DynamicFormScreen(slug: slug, fallbackTitle: title, onBack: { navigator.popBackStack() })
+                .id(slug)
+        case .contactUs:
+            ContactUsScreen(
+                onBack: { navigator.popBackStack() },
+                // فاز ۳۴ (اصلاحیه، کد ۴-و): کلیک روی لوگوی هر برند در کاروسل «برندهای همکار»
+                onOpenBrand: { brandSlug in navigator.navigate(.brand(slug: brandSlug)) }
+            )
+        case .transactionsList:
+            TransactionsListScreen(onBack: { navigator.popBackStack() })
         default:
             ComingSoonScreen(title: route.placeholderTitle, icon: RemixIcons.HammerLine, onBack: { navigator.popBackStack() })
         }

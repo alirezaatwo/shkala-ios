@@ -80,6 +80,31 @@ WAIT=8  shot 55-address-form      -shkScreen route:address-form
 WAIT=14 shot 56-map-picker        -shkScreen route:map
 WAIT=10 shot 57-orders            -shkScreen route:orders
 WAIT=10 shot 58-checkout          -shkScreen route:checkout
+# مرحله‌ی ۵ - بخش ۱: دسته‌بندی‌ها، فهرست محصولات، جستجو، برند، مجله
+WAIT=10 shot 60-categories        -shkScreen route:categories
+WAIT=10 shot 61-categories-brands -shkScreen route:categories-brands
+WAIT=10 shot 62-categories-blog   -shkScreen route:categories-articles
+WAIT=10 shot 63-categories-dark   -shkScreen route:categories -shkDark
+WAIT=14 shot 64-category-products -shkScreen route:category-first
+WAIT=12 shot 65-discount-list     -shkScreen route:discount
+WAIT=12 shot 66-latest-list       -shkScreen route:latest
+WAIT=12 shot 67-search-results    -shkScreen route:search
+WAIT=14 shot 68-brand             -shkScreen route:brand-first
+WAIT=14 shot 69-brand-dark        -shkScreen route:brand-first -shkDark
+WAIT=10 shot 70-magazine          -shkScreen route:magazine
+# مرحله‌ی ۵ - بخش ۴ تا ۷
+WAIT=10 shot 71-tools             -shkScreen route:tools
+WAIT=10 shot 72-hdd-calculator    -shkScreen route:hdd
+WAIT=10 shot 73-faq               -shkScreen route:faq
+WAIT=10 shot 74-terms             -shkScreen route:terms
+WAIT=12 shot 75-contact           -shkScreen route:contact
+WAIT=12 shot 77-articles          -shkScreen route:articles
+WAIT=16 shot 78-article           -shkScreen route:article-first
+WAIT=16 shot 79-article-dark      -shkScreen route:article-first -shkDark
+WAIT=10 shot 80-compare           -shkScreen route:compare
+WAIT=12 shot 81-in-carts          -shkScreen route:in-carts
+WAIT=8  shot 82-announcement      -shkScreen route:announcement
+WAIT=12 shot 83-webpage           -shkScreen route:guaranty
 shot 21-maintenance     -shkScreen maintenance
 shot 22-maint-countdown -shkScreen maintenance-countdown
 shot 23-maint-dark      -shkScreen maintenance-countdown -shkDark

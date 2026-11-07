@@ -898,3 +898,19 @@ struct SiteSearchField: View {
         .background(RoundedRectangle(cornerRadius: 15, style: .continuous).fill(fieldColor))
     }
 }
+
+// MARK: - کشیدن برای بروزرسانی
+
+extension View {
+    /// معادل SitePullRefresh / SitePullRefreshAsync اندروید: کشیدن به پایین با محدودیت سراسری
+    /// (حداکثر ۲ بار در دقیقه؛ بیشتر از اون پیام محدودیت نشون داده می‌شه)
+    func sitePullRefresh(_ onRefresh: @escaping () async -> Void) -> some View {
+        refreshable {
+            if PullRefreshRateLimiter.tryAcquire() {
+                await onRefresh()
+            } else {
+                ShkToast.shared.show(PULL_REFRESH_LIMIT_MESSAGE, long: true)
+            }
+        }
+    }
+}

@@ -133,6 +133,18 @@ final class CatalogRepository {
         }
     }
 
+    func getBrand(_ slug: String) async -> ApiResult<BrandDto> {
+        do {
+            let response = try await ApiService.getBrand(slug)
+            if response.isSuccessful, let brand = response.body?.brand {
+                return .success(brand)
+            }
+            return .error("دریافت اطلاعات برند با خطا مواجه شد.")
+        } catch {
+            return .error(Self.NETWORK_ERROR)
+        }
+    }
+
     // فاز ۱۸: ماژول بنرهای ۴تایی صفحه‌ی اصلی
     func getHomeBanners() async -> ApiResult<HomeBannersResponse> {
         do {

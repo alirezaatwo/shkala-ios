@@ -506,13 +506,26 @@ struct CompareProductDto: Decodable, Equatable {
     let id: Int
     let title: String
     let slug: String
-    enum CodingKeys: String, CodingKey { case compareId = "compare_id", id, title, slug }
+    let images: [ProductImageDto]?
+    let inStockStatus: Bool
+    let inventory: Bool
+    let bestNormalPrice: BestNormalPriceDto?
+    let specifications: [SpecificationGroupDto]?
+    enum CodingKeys: String, CodingKey {
+        case compareId = "compare_id", id, title, slug, inventory
+        case images = "get_images", inStockStatus = "in_stock_status", bestNormalPrice = "best_normal_price", specifications = "get_specifications"
+    }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         compareId = c.lenientInt(.compareId) ?? 0
         id = c.lenientInt(.id) ?? 0
         title = c.lenientString(.title) ?? ""
         slug = c.lenientString(.slug) ?? ""
+        images = c.lossyList(ProductImageDto.self, .images)
+        inStockStatus = c.lenientBool(.inStockStatus) ?? true
+        inventory = c.lenientBool(.inventory) ?? true
+        bestNormalPrice = try? c.decodeIfPresent(BestNormalPriceDto.self, forKey: .bestNormalPrice)
+        specifications = c.lossyList(SpecificationGroupDto.self, .specifications)
     }
 }
 
@@ -759,5 +772,49 @@ struct SubmitResponse: ShkDTO {
         status = c.lenientString(.status)
         published = c.lenientBool(.published) ?? false
         message = c.lenientString(.message)
+    }
+}
+
+/// فاز ۹: جست‌وجوی محصول هم‌دسته برای افزودن به مقایسه
+struct CompareSearchResponse: ShkDTO {
+    let status: String?
+    let products: CompareSearchPageDto?
+    enum CodingKeys: String, CodingKey { case status, products }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        status = c.lenientString(.status)
+        products = try? c.decodeIfPresent(CompareSearchPageDto.self, forKey: .products)
+    }
+}
+
+struct CompareSearchPageDto: ShkDTO {
+    let currentPage: Int
+    let lastPage: Int
+    let data: [CompareSearchProductDto]
+    enum CodingKeys: String, CodingKey { case currentPage = "current_page", lastPage = "last_page", data }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        currentPage = c.lenientInt(.currentPage) ?? 1
+        lastPage = c.lenientInt(.lastPage) ?? 1
+        data = c.lossyList(CompareSearchProductDto.self, .data) ?? []
+    }
+}
+
+struct CompareSearchProductDto: ShkDTO, Identifiable {
+    let id: Int
+    let title: String
+    let slug: String
+    let images: [ProductImageDto]?
+    let bestNormalPrice: BestNormalPriceDto?
+    let inventory: Bool
+    enum CodingKeys: String, CodingKey { case id, title, slug, inventory, images = "get_images", bestNormalPrice = "best_normal_price" }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.lenientInt(.id) ?? 0
+        title = c.lenientString(.title) ?? ""
+        slug = c.lenientString(.slug) ?? ""
+        images = c.lossyList(ProductImageDto.self, .images)
+        bestNormalPrice = try? c.decodeIfPresent(BestNormalPriceDto.self, forKey: .bestNormalPrice)
+        inventory = c.lenientBool(.inventory) ?? true
     }
 }
