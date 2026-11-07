@@ -47,6 +47,8 @@ enum AppRoute: Hashable {
     case walletEditCard
     case transactionsList
     case prefactorsList
+    // فاز ۳۲: فرم داینامیک اسکریپت (form/{slug}/{title})
+    case dynamicForm(slug: String, title: String)
     case prefactorDetail(uuid: String)
     case prefactorAddresses(uuid: String)
     case ticketsList
@@ -103,6 +105,7 @@ enum AppRoute: Hashable {
         case .walletEditCard: return "ویرایش کارت بانکی"
         case .transactionsList: return "تراکنش‌های من"
         case .prefactorsList: return "پیش‌فاکتورها"
+        case .dynamicForm(_, let title): return title
         case .prefactorDetail: return "پرداخت پیش‌فاکتور"
         case .prefactorAddresses: return "دریافت حضوری / ارسال به آدرس"
         case .ticketsList: return "تیکت‌های پشتیبانی"
@@ -705,6 +708,15 @@ struct AppRoot: View {
             FaqScreen(onBack: { navigator.popBackStack() }, onOpenContact: { navigator.navigate(.contactUs) })
         case .terms:
             TermsScreen(onBack: { navigator.popBackStack() })
+        case .dynamicForm(let slug, let title):
+            DynamicFormScreen(slug: slug, fallbackTitle: title, onBack: { navigator.popBackStack() })
+                .id(slug)
+        case .contactUs:
+            ContactUsScreen(
+                onBack: { navigator.popBackStack() },
+                // فاز ۳۴ (اصلاحیه، کد ۴-و): کلیک روی لوگوی هر برند در کاروسل «برندهای همکار»
+                onOpenBrand: { brandSlug in navigator.navigate(.brand(slug: brandSlug)) }
+            )
         case .transactionsList:
             TransactionsListScreen(onBack: { navigator.popBackStack() })
         default:

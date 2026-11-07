@@ -49,4 +49,28 @@ struct ContentRepository {
             return .error("خطا در اتصال به اینترنت.")
         }
     }
+
+    // فاز ۳۲: فرم‌های داینامیک اسکریپت (مثل «تماس با ما»)
+    func getForm(_ slug: String) async -> ApiResult<FormDto> {
+        do {
+            let response = try await ApiService.getForm(slug)
+            if response.isSuccessful, let body = response.body?.form { return .success(body) }
+            return .error("فرم یافت نشد.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
+
+    func submitFormAnswer(_ slug: String, body: FormAnswerSubmitRequest) async -> ApiResult<String> {
+        do {
+            let response = try await ApiService.submitFormAnswer(slug, body: body)
+            if response.isSuccessful, let r = response.body, r.status == "ok" {
+                return .success(r.message ?? "پیام شما با موفقیت ارسال شد.")
+            }
+            let message = response.errorBody.flatMap { try? ShkJSON.decoder.decode(FormAnswerSubmitResponse.self, from: $0) }?.message
+            return .error(message ?? "ارسال پیام با خطا مواجه شد.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
 }

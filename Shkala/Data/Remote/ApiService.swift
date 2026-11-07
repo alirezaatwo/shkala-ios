@@ -403,6 +403,15 @@ enum ApiService {
         try await api.call(.get, "api/v2/pages/\(enc(slug))", as: PageResponse.self)
     }
 
+    // فاز ۳۲: فرم‌های داینامیک اسکریپت (مثل «تماس با ما») - نمایش نیتیو + ثبت پاسخ
+    static func getForm(_ slug: String) async throws -> ApiResponse<FormResponse> {
+        try await api.call(.get, "api/v2/forms/\(enc(slug))", as: FormResponse.self)
+    }
+
+    static func submitFormAnswer(_ slug: String, body: FormAnswerSubmitRequest) async throws -> ApiResponse<FormAnswerSubmitResponse> {
+        try await api.call(.post, "api/v2/forms/\(enc(slug))/answer", body: body, as: FormAnswerSubmitResponse.self)
+    }
+
     static func getTickets(page: Int = 1, search: String? = nil, waitingAdmin: Bool? = nil, waitingUser: Bool? = nil, closed: Bool? = nil) async throws -> ApiResponse<TicketsResponse> {
         try await api.call(.get, "api/v2/tickets", query: [
             "page": String(page), "search": search, "waiting_admin": qb(waitingAdmin), "waiting_user": qb(waitingUser), "closed": qb(closed),
