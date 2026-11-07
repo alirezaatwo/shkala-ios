@@ -52,12 +52,20 @@ final class ApiClient {
         _ method: HttpMethod,
         _ path: String,
         query: [String: String?] = [:],
+        queryList: [(String, String)] = [],
         jsonBody: Data? = nil,
+        formBody: [String: String?]? = nil,
         headers: [String: String?] = [:]
     ) -> URLRequest {
         var components = URLComponents(string: ApiConstants.BASE_URL + path)!
+        // null = پارامتر ارسال نمی‌شه (مثل @Query با مقدار null)؛ queryList برای پارامترهای تکراری مثل slugs[]
         let items = query.compactMap { key, value in value.map { URLQueryItem(name: key, value: $0) } }
-        if !items.isEmpty { components.queryItems = (components.queryItems ?? []) + items.sorted { $0.name < $1.name } }
+            .sorted { $0.name < $1.name } + queryList.map { URLQueryItem(name: $0.0, value: $0.1) }
+        if !items.isEmpty {
+            components.queryItems = (components.queryItems ?? []) + items
+            // «+» در مقدار پارامتر باید کدگذاری بشه (URLComponents این کار رو نمی‌کنه)
+            components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        }
         var request = URLRequest(url: components.url!)
         request.httpMethod = method.rawValue
         request.timeoutInterval = 60
@@ -80,8 +88,23 @@ final class ApiClient {
         if let jsonBody {
             request.httpBody = jsonBody
             request.setValue("application/json; charset=UTF-8", forHTTPHeaderField: "Content-Type")
+        } else if let formBody {
+            // معادل @FormUrlEncoded + @Field (مقدار null = فیلد ارسال نمی‌شه)
+            request.httpBody = Self.formEncode(formBody).data(using: .utf8)
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         }
         return request
+    }
+
+    static func formEncode(_ fields: [String: String?]) -> String {
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._*")
+        return fields.compactMap { key, value -> String? in
+            guard let value else { return nil }
+            let k = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
+            let v = value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+            return "\(k)=\(v)"
+        }.sorted().joined(separator: "&")
     }
 
     /// اجرای درخواست؛ خطای شبکه یا JSON نامعتبرِ پاسخ موفق = throw (مثل Retrofit)
@@ -99,12 +122,14 @@ final class ApiClient {
         _ method: HttpMethod,
         _ path: String,
         query: [String: String?] = [:],
+        queryList: [(String, String)] = [],
         body: (any Encodable)? = nil,
+        form: [String: String?]? = nil,
         headers: [String: String?] = [:],
         as type: T.Type
     ) async throws -> ApiResponse<T> {
         let data = try body.map { try ShkJSON.encoder.encode(AnyEncodable($0)) }
-        let request = makeRequest(method, path, query: query, jsonBody: data, headers: headers)
+        let request = makeRequest(method, path, query: query, queryList: queryList, jsonBody: data, formBody: form, headers: headers)
         return try await send(request, as: type)
     }
 }
@@ -181,6 +206,45 @@ extension KeyedDecodingContainer {
         if let s = try? decodeIfPresent(String.self, forKey: key) { return s == "true" || s == "1" }
         return nil
     }
+}
+
+/// فهرست تحمل‌پذیر: هر عضوی که رمزگشایی‌اش شکست بخوره، به‌جای رد کردن کل پاسخ کنار گذاشته می‌شه
+struct LossyArray<Element: Decodable>: Decodable {
+    let items: [Element]
+    init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        var result: [Element] = []
+        while !container.isAtEnd {
+            if let v = try? container.decode(Element.self) { result.append(v) } else if (try? container.decode(JSONValue.self)) == nil { break }
+        }
+        items = result
+    }
+}
+
+extension KeyedDecodingContainer {
+    /// فهرست اختیاری تحمل‌پذیر: نبودن/null/غیرآرایه = null؛ اعضای خراب کنار گذاشته می‌شن
+    func lossyList<T: Decodable>(_ type: T.Type, _ key: Key) -> [T]? {
+        guard contains(key), (try? decodeNil(forKey: key)) != true else { return nil }
+        return (try? decode(LossyArray<T>.self, forKey: key))?.items
+    }
+}
+
+/// مقدار JSON دلخواه (معادل Map<String, Any> در Gson)
+enum JSONValue: Decodable, Equatable {
+    case string(String), number(Double), bool(Bool), null, array([JSONValue]), object([String: JSONValue])
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { self = .null }
+        else if let b = try? c.decode(Bool.self) { self = .bool(b) }
+        else if let n = try? c.decode(Double.self) { self = .number(n) }
+        else if let s = try? c.decode(String.self) { self = .string(s) }
+        else if let a = try? c.decode([JSONValue].self) { self = .array(a) }
+        else if let o = try? c.decode([String: JSONValue].self) { self = .object(o) }
+        else { self = .null }
+    }
+
+    var stringValue: String? { if case .string(let s) = self { return s }; return nil }
 }
 
 /// معادل sealed class ApiResult اپ اندروید
