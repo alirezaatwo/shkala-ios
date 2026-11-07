@@ -35,7 +35,7 @@ targets:
     info:
       path: Shkala/Info.plist
       properties:
-        CFBundleDisplayName: shkala
+        CFBundleDisplayName: سیما حفاظ خزر
         CFBundleName: Shkala
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
