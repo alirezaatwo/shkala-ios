@@ -18,6 +18,8 @@ struct RootView: View {
     @State private var stage: AppStage = .splash
     /// هر بار «تلاش مجدد» = بارگذاری مجدد کامل اپ از اسپلش (مثل recreate() اندروید)
     @State private var launchId = UUID()
+    /// هشدار VPN موقع بالا اومدن اپ (معادل showStartupVpnWarning اندروید)
+    @State private var showStartupVpnWarning = false
 
     private let screenshot = ScreenshotMode.current
 
@@ -35,6 +37,7 @@ struct RootView: View {
             switch stage {
             case .splash:
                 SplashStage(viewModel: startupViewModel, onRetry: restart) {
+                    showStartupVpnWarning = isVpnActive()
                     stage = IntroPreferenceManager.hasSeenIntro() ? .main : .intro
                 }
             case .intro:
@@ -47,10 +50,17 @@ struct RootView: View {
                 // معادل MaintenanceGate { AppRoot } + لایه‌ی همیشگی گفتینو
                 ZStack {
                     MaintenanceGate {
-                        AppRoot(
-                            isDarkTheme: themePreference.isDarkTheme,
-                            onToggleTheme: { themePreference.setDarkTheme(!themePreference.isDarkTheme) }
-                        )
+                        ZStack {
+                            AppRoot(
+                                isDarkTheme: themePreference.isDarkTheme,
+                                onToggleTheme: { themePreference.setDarkTheme(!themePreference.isDarkTheme) }
+                            )
+                            // دیالوگ‌های شروع به‌ترتیب: هشدار VPN ← ...
+                            StartupDialogsHost(
+                                showVpnWarning: showStartupVpnWarning,
+                                onVpnWarningDismiss: { showStartupVpnWarning = false }
+                            )
+                        }
                     }
                     GoftinoChatOverlay()
                 }

@@ -56,6 +56,21 @@ enum ApiService {
         try await api.call(.get, "api/v2/article-categories", as: ArticleCategoriesResponse.self)
     }
 
+    // پاپ‌آپ‌ساز: عضویت خبرنامه از بلوک «خبرنامه»ی پاپ‌آپ (جدول خبرنامه‌ی سایت)
+    static func subscribePopupNewsletter(_ value: String, pid: Int64) async throws -> ApiResponse<FormAnswerSubmitResponse> {
+        try await api.call(.post, "api/v2/popup/newsletter", form: ["value": value, "pid": String(pid)], as: FormAnswerSubmitResponse.self)
+    }
+
+    // چند پاپ‌آپ: پاپ‌آپ‌های یک صفحه (screen = home / product / category / brand / cart / checkout / blog / other)
+    static func getPopups(screen: String, slug: String?) async throws -> ApiResponse<AppPopupsResponse> {
+        try await api.call(.get, "api/v2/popups", query: ["screen": screen, "slug": slug], as: AppPopupsResponse.self)
+    }
+
+    // آمار پاپ‌آپ: view / click / close / submit
+    static func popupEvent(pid: Int64, event: String) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(.post, "api/v2/popup/event", form: ["pid": String(pid), "event": event])
+    }
+
     static func getArticles(category: String? = nil, page: Int = 1) async throws -> ApiResponse<ArticlesResponse> {
         try await api.call(.get, "api/v2/articles", query: ["category": category, "page": String(page)], as: ArticlesResponse.self)
     }

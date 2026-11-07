@@ -28,6 +28,36 @@ struct ContentRepository {
         }
     }
 
+    /// پاپ‌آپ‌های یک صفحه؛ nil = خطا (دفعه‌ی بعد دوباره تلاش می‌شه)
+    func getPopups(_ screen: String, slug: String?) async -> [AppPopupDto]? {
+        do {
+            let response = try await ApiService.getPopups(screen: screen, slug: slug)
+            return response.isSuccessful ? (response.body?.popups ?? []) : nil
+        } catch {
+            return nil
+        }
+    }
+
+    /// آمار پاپ‌آپ (خطا نادیده گرفته می‌شه)
+    func sendPopupEvent(_ pid: Int64, event: String) async {
+        // آمار هیچ‌وقت کار اپ رو خراب نمی‌کنه
+        _ = try? await ApiService.popupEvent(pid: pid, event: event)
+    }
+
+    /// پاپ‌آپ‌ساز: عضویت خبرنامه (ایمیل یا موبایل) - پیام موفقیت از سرور
+    func subscribePopupNewsletter(_ value: String, pid: Int64) async -> ApiResult<String> {
+        do {
+            let response = try await ApiService.subscribePopupNewsletter(value, pid: pid)
+            if response.isSuccessful, let body = response.body, body.status == "ok" {
+                return .success(body.message ?? "عضویت شما در خبرنامه ثبت شد.")
+            }
+            let message = response.errorBody.flatMap { try? ShkJSON.decoder.decode(FormAnswerSubmitResponse.self, from: $0) }?.message
+            return .error(message ?? "ثبت انجام نشد؛ دوباره تلاش کنید.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
+
     func getArticles(category: String? = nil, page: Int = 1) async -> ApiResult<ArticlesPage> {
         do {
             let response = try await ApiService.getArticles(category: category, page: page)

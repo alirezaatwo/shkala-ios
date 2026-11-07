@@ -226,6 +226,7 @@ struct AppRoot: View {
     @ObservedObject private var cartViewModel = CartViewModel.shared
     @ObservedObject private var loginPrompt = LoginRequiredPrompt.shared
     @ObservedObject private var dialogCenter = ShkDialogCenter.shared
+    @ObservedObject private var startupDialogs = StartupDialogsState.shared
     @Environment(\.shkColors) private var colors
 
     // فاز ۲۶: سایدبار اصلی اپ - از پشت منوی همبرگری کنار لوگوی هدر باز می‌شه
@@ -276,10 +277,23 @@ struct AppRoot: View {
                 onOpenTools: { navigator.navigate(.tools) }
             )
 
+            // پاپ‌آپ‌های تبلیغاتی (چند پاپ‌آپ با هدف‌گیری صفحه): صفحه‌ی فعلی برای سرور + بعد از بسته شدن دیالوگ‌های
+            // شروع تا هیچ‌وقت دو دیالوگ روی هم نیفتن. صفحه‌های پرداخت، نقشه، فرم‌ها و وب‌ویوها پاپ‌آپ ندارن (nil)
+            let popupTarget = popupScreenFor(route: navigator.currentRoute, tab: navigator.tab, cartOpen: false)
+            if !showCartSheet {
+                AppPopupHost(
+                    enabled: popupTarget.screen != nil && startupDialogs.isIdle && !showAppDrawer && !goftinoVm.isChatVisible,
+                    screen: popupTarget.screen,
+                    slug: popupTarget.slug,
+                    onOpenLink: { navigator.openAppLink($0) }
+                )
+            }
+
             ShkToastHost()
         }
         // فاز ۱۴: سبد خرید تمام‌صفحه بالا میاد؛ پس‌زمینه‌ی شیت هم‌رنگ پس‌زمینه‌ی صفحه
         .sheet(isPresented: $showCartSheet) {
+            ZStack {
             CartSheetContent(
                 onClose: { showCartSheet = false },
                 onContinueShopping: {
@@ -295,6 +309,17 @@ struct AppRoot: View {
                     navigator.navigate(.cartPrefactor)
                 }
             )
+            // تفاوت iOS: شیت سبد خرید روی کل پنجره‌ست؛ پاپ‌آپ صفحه‌ی «cart» داخل خود شیت نمایش داده می‌شه
+            AppPopupHost(
+                enabled: startupDialogs.isIdle && !goftinoVm.isChatVisible,
+                screen: "cart",
+                slug: nil,
+                onOpenLink: { link in
+                    showCartSheet = false
+                    navigator.openAppLink(link)
+                }
+            )
+            }
             .shkSheetEnvironment()
         }
         .sheet(item: $quickAddProduct) { product in
