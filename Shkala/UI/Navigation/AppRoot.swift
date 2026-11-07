@@ -37,6 +37,16 @@ enum AppRoute: Hashable {
     // سفارش‌های من
     case ordersList
     case orderDetail(id: Int)
+    // مرحله‌ی ۵: منوهای «حساب من»
+    case wallet
+    case transactionsList
+    case prefactorsList
+    case ticketsList
+    case favoritesList
+    case myCommentsList
+    case recentlyViewed
+    case activeSessions
+    case editProfile
 
     /// اسلاگ‌های قراردادی فهرست‌های «مشاهده همه» صفحه‌ی اصلی (همون Routes.*_SLUG اندروید)
     static let DISCOUNT_PRODUCTS_SLUG = "__discount__"
@@ -74,6 +84,15 @@ enum AppRoute: Hashable {
         case .orderResult: return "نتیجه‌ی سفارش"
         case .ordersList: return "سفارش‌های من"
         case .orderDetail: return "جزئیات سفارش"
+        case .wallet: return "کیف پول"
+        case .transactionsList: return "تراکنش‌های من"
+        case .prefactorsList: return "پیش‌فاکتورها"
+        case .ticketsList: return "تیکت‌های پشتیبانی"
+        case .favoritesList: return "علاقه‌مندی‌های من"
+        case .myCommentsList: return "دیدگاه‌های من"
+        case .recentlyViewed: return "بازدیدهای اخیر"
+        case .activeSessions: return "نشست‌های فعال"
+        case .editProfile: return "ویرایش حساب کاربری"
         }
     }
 }
@@ -191,6 +210,7 @@ struct AppRoot: View {
     // تب دسته‌بندی‌ها: شناسه‌ی ساخت دوباره و تب اولیه (requestedTab ?: lastVisitedTab ?: 0)
     @State private var categoriesEpoch = 0
     @State private var categoriesInitialTab = 0
+    @State private var accountEpoch = 0
 
     private var isLoggedIn: Bool { tokenManager.token != nil }
 
@@ -293,6 +313,9 @@ struct AppRoot: View {
             pending.requestedTab = nil
             categoriesEpoch += 1
         }
+        .onChange(of: navigator.tab == .ACCOUNT && navigator.stack.isEmpty) { visible in
+            if visible { accountEpoch += 1 }
+        }
         .onChange(of: isLoggedIn) { loggedIn in
             if loggedIn { cartViewModel.loadCart(silently: true) } else { cartViewModel.clear() }
         }
@@ -391,19 +414,24 @@ struct AppRoot: View {
         .id(categoriesEpoch)
     }
 
-    @ViewBuilder
+    /// تب «حساب من»: مثل اندروید با هر بار ورود به این مقصد از نو ساخته می‌شه (اطلاعات تازه گرفته می‌شه)
     private var accountScreen: some View {
-        if isLoggedIn {
-            // صفحه‌ی حساب کاربری در مرحله‌ی ۵ ساخته می‌شه؛ فعلاً فقط امکان خروج برای آزمایش
-            VStack(spacing: 0) {
-                ComingSoonScreen(title: "حساب من", icon: RemixIcons.UserSmileLine, onBack: nil)
-                SiteSecondaryButton(text: "خروج از حساب کاربری", onClick: { TokenManager.shared.clearSession() }, fillWidth: true)
-                    .padding(16)
-            }
-        } else {
-            // نیازی نیست کاری بکنیم؛ با تغییر توکن، همین صفحه خودکار به پروفایل تغییر می‌کنه
-            AuthScreen(onLoginSuccess: {})
-        }
+        AccountScreen(actions: AccountActions(
+            onOrdersClick: { navigator.navigate(.ordersList) },
+            onWalletClick: { navigator.navigate(.wallet) },
+            onTransactionsClick: { navigator.navigate(.transactionsList) },
+            onNotificationsClick: { navigator.navigate(.notificationsList) },
+            onPrefactorsClick: { navigator.navigate(.prefactorsList) },
+            onTicketsClick: { navigator.navigate(.ticketsList) },
+            onFavoritesClick: { navigator.navigate(.favoritesList) },
+            onCommentsClick: { navigator.navigate(.myCommentsList) },
+            onRecentlyViewedClick: { navigator.navigate(.recentlyViewed) },
+            onSessionsClick: { navigator.navigate(.activeSessions) },
+            onEditProfileClick: { navigator.navigate(.editProfile) },
+            onAddressesClick: { navigator.navigate(.addresses) },
+            onCompareClick: { navigator.navigate(.compare) }
+        ))
+        .id(accountEpoch)
     }
 
     @ViewBuilder
@@ -520,6 +548,34 @@ struct AppRoot: View {
                 onBack: { navigator.popBackStack() },
                 onOpenArticleCategory: { slug, title in navigator.navigate(.articleList(slug: slug, title: title)) }
             )
+        case .favoritesList:
+            FavoritesScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
+        case .myCommentsList:
+            MyCommentsScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
+        case .recentlyViewed:
+            RecentlyViewedScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
+        case .notificationsList:
+            NotificationsListScreen(onBack: { navigator.popBackStack() })
+        case .activeSessions:
+            ActiveSessionsScreen(
+                onBack: { navigator.popBackStack() },
+                // نشست فعلی بسته شد: توکن پاک و برگشت به تب حساب (فرم ورود)
+                onLoggedOut: {
+                    TokenManager.shared.clearSession()
+                    navigator.selectTab(.ACCOUNT)
+                }
+            )
+        case .transactionsList:
+            TransactionsListScreen(onBack: { navigator.popBackStack() })
         default:
             ComingSoonScreen(title: route.placeholderTitle, icon: RemixIcons.HammerLine, onBack: { navigator.popBackStack() })
         }

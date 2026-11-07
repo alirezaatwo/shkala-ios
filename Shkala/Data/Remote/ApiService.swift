@@ -317,6 +317,71 @@ enum ApiService {
     // ---- سفارش‌های من ----
 
     /// جستجو بر اساس شماره‌ی سفارش (روی rejected_orders هم اعمال می‌شه)
+    // ---- مرحله‌ی ۵: حساب کاربری ----
+
+    /// Boolean رتروفیت در کوئری = «true»/«false»
+    private static func qb(_ v: Bool?) -> String? { v.map { $0 ? "true" : "false" } }
+
+    static func getAccountSummary() async throws -> ApiResponse<AccountSummaryResponse> {
+        try await api.call(.get, "api/v2/my-orders-summary", as: AccountSummaryResponse.self)
+    }
+
+    static func getTransactions(page: Int = 1, search: String? = nil, accepted: Bool? = nil, rejected: Bool? = nil,
+                                deposit: Bool? = nil, withdrawal: Bool? = nil) async throws -> ApiResponse<TransactionsResponse> {
+        try await api.call(.get, "api/v2/transactions", query: [
+            "page": String(page), "search": search, "accepted": qb(accepted), "rejected": qb(rejected),
+            "deposit": qb(deposit), "withdrawal": qb(withdrawal),
+        ], as: TransactionsResponse.self)
+    }
+
+    static func getNotifications(page: Int = 1) async throws -> ApiResponse<NotificationsResponse> {
+        try await api.call(.get, "api/v2/notifications", query: ["page": String(page)], as: NotificationsResponse.self)
+    }
+
+    static func markNotificationAsRead(_ id: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/notifications/\(enc(id))/mark-read", as: SimpleStatusResponse.self)
+    }
+
+    static func getPrefactors(page: Int = 1, search: String? = nil, paid: Bool? = nil, waitingPayment: Bool? = nil) async throws -> ApiResponse<PrefactorsResponse> {
+        try await api.call(.get, "api/v2/prefactors", query: [
+            "page": String(page), "search": search, "paid": qb(paid), "waiting_payment": qb(waitingPayment),
+        ], as: PrefactorsResponse.self)
+    }
+
+    static func getTickets(page: Int = 1, search: String? = nil, waitingAdmin: Bool? = nil, waitingUser: Bool? = nil, closed: Bool? = nil) async throws -> ApiResponse<TicketsResponse> {
+        try await api.call(.get, "api/v2/tickets", query: [
+            "page": String(page), "search": search, "waiting_admin": qb(waitingAdmin), "waiting_user": qb(waitingUser), "closed": qb(closed),
+        ], as: TicketsResponse.self)
+    }
+
+    static func getFavorites(page: Int = 1, search: String? = nil) async throws -> ApiResponse<FavoritesResponse> {
+        try await api.call(.get, "api/v2/favorites", query: ["page": String(page), "search": search], as: FavoritesResponse.self)
+    }
+
+    static func getMyComments(page: Int = 1, search: String? = nil) async throws -> ApiResponse<CommentsResponse> {
+        try await api.call(.get, "api/v2/comments", query: ["page": String(page), "search": search], as: CommentsResponse.self)
+    }
+
+    static func getProfile() async throws -> ApiResponse<ProfileEditResponse> {
+        try await api.call(.get, "api/v2/profile", as: ProfileEditResponse.self)
+    }
+
+    static func updateProfile(parts: [MultipartPart]) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.callMultipart(.post, "api/v2/profile", parts: parts, as: SimpleStatusResponse.self)
+    }
+
+    static func changePassword(current: String?, new: String, newConfirmation: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/profile/change-password", form: ["current": current, "new": new, "new_confirmation": newConfirmation], as: SimpleStatusResponse.self)
+    }
+
+    static func getSessions() async throws -> ApiResponse<SessionsResponse> {
+        try await api.call(.get, "api/v2/sessions", as: SessionsResponse.self)
+    }
+
+    static func terminateSession(_ id: Int) async throws -> ApiResponse<TerminateSessionResponse> {
+        try await api.call(.delete, "api/v2/sessions/\(id)", as: TerminateSessionResponse.self)
+    }
+
     static func getMyOrders(page: Int = 1, search: String? = nil) async throws -> ApiResponse<OrdersListResponse> {
         try await api.call(.get, "api/v2/my-orders", query: ["page": String(page), "search": search], as: OrdersListResponse.self)
     }

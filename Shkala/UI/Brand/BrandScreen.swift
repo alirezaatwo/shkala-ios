@@ -153,7 +153,7 @@ struct BrandScreen: View {
                     // کارت سربرگ برند
                     BrandHeaderCard(
                         brand: brand,
-                        descriptionText: htmlToPlainText(brand?.content ?? ""),
+                        descriptionText: htmlToPlainText(brand?.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
                         descriptionExpanded: descriptionExpanded,
                         onToggleDescription: { withAnimation(.easeInOut(duration: 0.25)) { descriptionExpanded.toggle() } }
                     )
@@ -199,21 +199,6 @@ struct BrandScreen: View {
         }
         .sitePullRefresh { await refresh() }
     }
-}
-
-/** متن ساده‌ی یک HTML (معادل HtmlCompat.fromHtml(...).toString().trim()) */
-private func htmlToPlainText(_ html: String) -> String {
-    if html.isBlankShk { return "" }
-    guard let data = html.data(using: .utf8),
-          let attributed = try? NSAttributedString(
-            data: data,
-            options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue],
-            documentAttributes: nil
-          ) else {
-        return html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    return attributed.string.trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
 /** کارت سربرگ برند: لوگو در کادر سفید گوشه‌گرد، عنوان، عنوان لاتین، تعداد محصولات و توضیحات */
