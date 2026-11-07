@@ -207,6 +207,15 @@ enum ApiService {
         try await api.call(.post, "api/v2/compares/\(enc(slug))", form: ["type": type], as: CompareActionResponse.self)
     }
 
+    static func removeFromCompare(_ compareId: Int) async throws -> ApiResponse<CompareActionResponse> {
+        try await api.call(.delete, "api/v2/compares/\(compareId)", as: CompareActionResponse.self)
+    }
+
+    // فاز ۹: جست‌وجوی محصول برای افزودن به مقایسه (فقط هم‌دسته با محصولات فعلی مقایسه)
+    static func searchCompareProducts(search: String? = nil, page: Int = 1) async throws -> ApiResponse<CompareSearchResponse> {
+        try await api.call(.get, "api/v2/compares-search", query: ["search": search, "page": String(page)], as: CompareSearchResponse.self)
+    }
+
     // ---- سبد خرید ----
 
     static func getCart() async throws -> ApiResponse<CartResponse> {

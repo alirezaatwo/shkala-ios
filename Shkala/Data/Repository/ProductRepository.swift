@@ -174,6 +174,27 @@ struct ProductCompareRepository {
             return .error("خطا در اتصال اینترنت")
         }
     }
+
+    func removeFromCompare(_ compareId: Int) async -> ApiResult<CompareActionResponse> {
+        do {
+            let response = try await ApiService.removeFromCompare(compareId)
+            if response.isSuccessful, let body = response.body { return .success(body) }
+            return .error("خطا در حذف از مقایسه")
+        } catch {
+            return .error("خطا در اتصال اینترنت")
+        }
+    }
+
+    /// فاز ۹: جست‌وجوی لایو محصولات هم‌دسته برای افزودن به مقایسه
+    func searchCompareProducts(search: String? = nil, page: Int = 1) async -> ApiResult<CompareSearchPageDto> {
+        do {
+            let response = try await ApiService.searchCompareProducts(search: search, page: page)
+            if response.isSuccessful, let body = response.body?.products { return .success(body) }
+            return .error("خطا در جست‌وجوی محصول")
+        } catch {
+            return .error("خطا در اتصال اینترنت")
+        }
+    }
 }
 
 /// امضای فایل PNG (برای تعیین نوع واقعی تصویر)

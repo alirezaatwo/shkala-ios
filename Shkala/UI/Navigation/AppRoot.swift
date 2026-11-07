@@ -590,6 +590,8 @@ struct AppRoot: View {
         case .articleDetail(let slug, let title, let html, let imageUrl):
             ArticleDetailScreen(articleSlug: slug, title: title, html: html, imageUrl: imageUrl, onBack: { navigator.popBackStack() })
                 .id(slug)
+        case .compare:
+            CompareScreen(onBack: { navigator.popBackStack() }, onGoHome: { navigator.selectTab(.HOME) })
         case .favoritesList:
             FavoritesScreen(
                 onBack: { navigator.popBackStack() },
