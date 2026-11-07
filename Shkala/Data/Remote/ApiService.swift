@@ -56,6 +56,23 @@ enum ApiService {
         try await api.call(.get, "api/v2/article-categories", as: ArticleCategoriesResponse.self)
     }
 
+    static func getArticles(category: String? = nil, page: Int = 1) async throws -> ApiResponse<ArticlesResponse> {
+        try await api.call(.get, "api/v2/articles", query: ["category": category, "page": String(page)], as: ArticlesResponse.self)
+    }
+
+    static func getArticleDetail(_ slug: String) async throws -> ApiResponse<ArticleDetailResponse> {
+        try await api.call(.get, "api/v2/articles/\(enc(slug))", as: ArticleDetailResponse.self)
+    }
+
+    // فاز ۱۶: دیدگاه‌های مقاله - فهرست عمومی (بدون نیاز به لاگین) و ثبت دیدگاه (نیازمند لاگین)
+    static func getArticleComments(_ slug: String) async throws -> ApiResponse<ArticleCommentsResponse> {
+        try await api.call(.get, "api/v2/articles/\(enc(slug))/comments", as: ArticleCommentsResponse.self)
+    }
+
+    static func addArticleComment(_ slug: String, content: String, replyTo: Int? = nil) async throws -> ApiResponse<ArticleAddCommentResponse> {
+        try await api.call(.post, "api/v2/articles/\(enc(slug))/comments", form: ["content": content, "reply_to": replyTo.map { String($0) }], as: ArticleAddCommentResponse.self)
+    }
+
     /// فاز ۱۰: مرتب‌سازی/فیلتر - دقیقاً همون پارامترهایی که ProductsArchiveService.php سایت می‌فهمه؛
     /// فیلترهای اختصاصی با فرمت filters[عنوان]=مقدار
     static func getProducts(

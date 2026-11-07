@@ -2,6 +2,9 @@ import SwiftUI
 
 /// مسیرهای غیرتبیِ اپ (معادل Routes اندروید). مسیرهایی که صفحه‌شون هنوز ساخته نشده موقتاً
 /// صفحه‌ی «به‌زودی» نشون می‌دن و در مراحل ۴ و ۵ یکی‌یکی جایگزین می‌شن.
+/// فاز ۳۱: اسلاگ ویژه‌ی «همه‌ی مقالات» (Routes.ALL_ARTICLES_SLUG اندروید)
+let ALL_ARTICLES_SLUG = "__all_articles__"
+
 enum AppRoute: Hashable {
     case productDetail(slug: String)
     case categoryProducts(slug: String, title: String)
@@ -18,6 +21,8 @@ enum AppRoute: Hashable {
     case magazine
     // فهرست مقالات یک دسته‌بندی بلاگ (مرحله‌ی ۵ - بخش ۳)
     case articleList(slug: String, title: String)
+    // صفحه‌ی یک مقاله (معادل حالت مقاله‌ی PRODUCT_DESCRIPTION اندروید)
+    case articleDetail(slug: String, title: String, html: String, imageUrl: String?)
     case faqList
     // مرحله‌ی ۴: تسویه‌ی حساب و پیش‌فاکتور سبد خرید
     case checkout
@@ -83,6 +88,7 @@ enum AppRoute: Hashable {
         case .terms: return "قوانین و شرایط"
         case .magazine: return "مجله"
         case .articleList(_, let title): return title
+        case .articleDetail(_, let title, _, _): return title
         case .faqList: return "پرسش‌های متداول"
         case .checkout: return "تسویه حساب"
         case .cartPrefactor: return "پیش‌فاکتور"
@@ -571,6 +577,19 @@ struct AppRoot: View {
                 onBack: { navigator.popBackStack() },
                 onOpenArticleCategory: { slug, title in navigator.navigate(.articleList(slug: slug, title: title)) }
             )
+        case .articleList(let slug, let title):
+            ArticleListScreen(
+                categorySlug: slug == ALL_ARTICLES_SLUG ? nil : slug,
+                categoryTitle: title,
+                onBack: { navigator.popBackStack() },
+                onOpenArticle: { articleSlug, articleTitle, html, imageUrl in
+                    navigator.navigate(.articleDetail(slug: articleSlug, title: articleTitle, html: html, imageUrl: imageUrl))
+                }
+            )
+            .id(slug)
+        case .articleDetail(let slug, let title, let html, let imageUrl):
+            ArticleDetailScreen(articleSlug: slug, title: title, html: html, imageUrl: imageUrl, onBack: { navigator.popBackStack() })
+                .id(slug)
         case .favoritesList:
             FavoritesScreen(
                 onBack: { navigator.popBackStack() },

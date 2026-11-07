@@ -28,6 +28,52 @@ struct ContentRepository {
         }
     }
 
+    func getArticles(category: String? = nil, page: Int = 1) async -> ApiResult<ArticlesPage> {
+        do {
+            let response = try await ApiService.getArticles(category: category, page: page)
+            if response.isSuccessful, let body = response.body {
+                return .success(ArticlesPage(items: body.articles, pagination: body.pagination))
+            }
+            return .error("دریافت مقالات با خطا مواجه شد.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
+
+    func getArticleDetail(_ slug: String) async -> ApiResult<ArticleDetailDto> {
+        do {
+            let response = try await ApiService.getArticleDetail(slug)
+            if response.isSuccessful, let body = response.body?.article { return .success(body) }
+            return .error("مقاله یافت نشد.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
+
+    // فاز ۱۶: دیدگاه‌های مقاله
+    func getArticleComments(_ slug: String) async -> ApiResult<[ArticleCommentDto]> {
+        do {
+            let response = try await ApiService.getArticleComments(slug)
+            if response.isSuccessful, let body = response.body?.comments { return .success(body) }
+            return .error("دریافت دیدگاه‌ها با خطا مواجه شد.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
+
+    func addArticleComment(_ slug: String, content: String, replyTo: Int? = nil) async -> ApiResult<String> {
+        do {
+            let response = try await ApiService.addArticleComment(slug, content: content, replyTo: replyTo)
+            if response.isSuccessful, let body = response.body {
+                return .success(body.message ?? "دیدگاه شما ثبت شد.")
+            }
+            let message = response.errorBody.flatMap { try? ShkJSON.decoder.decode(ArticleAddCommentResponse.self, from: $0) }?.message
+            return .error(message ?? "ثبت دیدگاه با خطا مواجه شد.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
+
     // فاز ۳۱: پرسش‌های متداول
     func getFaqs() async -> ApiResult<[FaqDto]> {
         do {
