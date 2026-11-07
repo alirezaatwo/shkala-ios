@@ -16,6 +16,8 @@ enum AppRoute: Hashable {
     case contactUs
     case terms
     case magazine
+    // فهرست مقالات یک دسته‌بندی بلاگ (مرحله‌ی ۵ - بخش ۳)
+    case articleList(slug: String, title: String)
     case faqList
     // مرحله‌ی ۴: تسویه‌ی حساب و پیش‌فاکتور سبد خرید
     case checkout
@@ -58,6 +60,7 @@ enum AppRoute: Hashable {
         case .contactUs: return "تماس با ما"
         case .terms: return "قوانین و شرایط"
         case .magazine: return "مجله"
+        case .articleList(_, let title): return title
         case .faqList: return "پرسش‌های متداول"
         case .checkout: return "تسویه حساب"
         case .cartPrefactor: return "پیش‌فاکتور"
@@ -185,6 +188,9 @@ struct AppRoot: View {
     @State private var showCartSheet = false
     // شیت انتخاب نوعِ محصولِ چندگزینه‌ای (ProductQuickAddSheet) از روی کارت محصول
     @State private var quickAddProduct: ProductListItemDto? = nil
+    // تب دسته‌بندی‌ها: شناسه‌ی ساخت دوباره و تب اولیه (requestedTab ?: lastVisitedTab ?: 0)
+    @State private var categoriesEpoch = 0
+    @State private var categoriesInitialTab = 0
 
     private var isLoggedIn: Bool { tokenManager.token != nil }
 
@@ -277,6 +283,16 @@ struct AppRoot: View {
             // تعداد روی آیکن سبد درست باشه - نه فقط وقتی کاربر سبد رو باز می‌کنه
             if isLoggedIn { cartViewModel.loadCart(silently: true) }
         }
+        // تب انتخاب‌شده از هر جای اپ (مثلاً منوی «مجله» یا لینک) هم زنده نگه داشته می‌شه
+        .onChange(of: navigator.tab) { t in visitedTabs.insert(t) }
+        .onChange(of: navigator.tab == .CATEGORIES && navigator.stack.isEmpty) { visible in
+            guard visible else { return }
+            // فاز ۳۲/۳۴: تب درخواستیِ «مجله» اولویت داره و بلافاصله پاک می‌شه؛ بعد آخرین تبی که کاربر داشت
+            let pending = PendingCategoriesTabViewModel.shared
+            categoriesInitialTab = pending.requestedTab ?? pending.lastVisitedTab ?? 0
+            pending.requestedTab = nil
+            categoriesEpoch += 1
+        }
         .onChange(of: isLoggedIn) { loggedIn in
             if loggedIn { cartViewModel.loadCart(silently: true) } else { cartViewModel.clear() }
         }
@@ -296,9 +312,7 @@ struct AppRoot: View {
             // تب‌ها همیشه زنده می‌مونن تا اسکرول و داده‌شون حفظ بشه (saveState/restoreState اندروید)
             tabLayer(.HOME) { homeScreen }
             if visitedTabs.contains(.CATEGORIES) {
-                tabLayer(.CATEGORIES) {
-                    ComingSoonScreen(title: "دسته‌بندی", icon: RemixIcons.Apps2Line, onBack: nil)
-                }
+                tabLayer(.CATEGORIES) { categoriesScreen }
             }
             if visitedTabs.contains(.ACCOUNT) {
                 tabLayer(.ACCOUNT) { accountScreen }
@@ -357,6 +371,24 @@ struct AppRoot: View {
             isLoggedIn: isLoggedIn,
             viewModel: homeViewModel
         )
+    }
+
+    /// تب دسته‌بندی‌ها: در اندروید با هر بار ورود به این مقصد (از منوی پایین یا برگشت از برند/مقاله)
+    /// صفحه از نو ساخته می‌شه؛ اینجا هم با عوض‌شدن شناسه همون اتفاق می‌افته
+    private var categoriesScreen: some View {
+        CategoriesScreen(
+            onCategoryClick: { slug, title in navigator.navigate(.categoryProducts(slug: slug, title: title)) },
+            onOpenBrand: { slug, currentTab in
+                PendingCategoriesTabViewModel.shared.lastVisitedTab = currentTab
+                navigator.navigate(.brand(slug: slug))
+            },
+            onOpenArticleCategory: { slug, title, currentTab in
+                PendingCategoriesTabViewModel.shared.lastVisitedTab = currentTab
+                navigator.navigate(.articleList(slug: slug, title: title))
+            },
+            initialTab: categoriesInitialTab
+        )
+        .id(categoriesEpoch)
     }
 
     @ViewBuilder
@@ -452,6 +484,41 @@ struct AppRoot: View {
                 orderId: orderId,
                 onBack: { navigator.popBackStack() },
                 onProductClick: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
+        case .categoryProducts(let slug, let title):
+            let isDiscountPage = slug == AppRoute.DISCOUNT_PRODUCTS_SLUG
+            let isLatestPage = slug == AppRoute.LATEST_PRODUCTS_SLUG
+            let isMostViewedPage = slug == AppRoute.MOST_VIEWED_PRODUCTS_SLUG
+            let isSentinelSlug = isDiscountPage || isLatestPage || isMostViewedPage
+            CategoryProductsScreen(
+                categorySlug: isSentinelSlug ? nil : slug,
+                categoryTitle: title,
+                onBack: { navigator.popBackStack() },
+                onProductClick: { productSlug in navigator.navigate(.productDetail(slug: productSlug)) },
+                onSearchSubmit: { query, cat in navigator.navigate(.searchResults(query: query, categorySlug: cat)) },
+                forceDiscount: isDiscountPage,
+                forceSort: isLatestPage ? .LATEST : (isMostViewedPage ? .MOST_VIEWED : nil),
+                // فاز ۳۱: کاروسل زیردسته‌بندی‌ها - با زدن روی هرکدوم، همین صفحه دوباره برای زیردسته باز می‌شه
+                onCategoryClick: { subSlug, subTitle in navigator.navigate(.categoryProducts(slug: subSlug, title: subTitle)) }
+            )
+        case .searchResults(let query, let cat):
+            SearchResultsScreen(
+                query: query,
+                categorySlug: cat,
+                onBack: { navigator.popBackStack() },
+                onProductClick: { slug in navigator.navigate(.productDetail(slug: slug)) },
+                onSearchSubmit: { newQuery, newCat in navigator.navigate(.searchResults(query: newQuery, categorySlug: newCat)) }
+            )
+        case .brand(let brandSlug):
+            BrandScreen(
+                brandSlug: brandSlug,
+                onBack: { navigator.popBackStack() },
+                onProductClick: { productSlug in navigator.navigate(.productDetail(slug: productSlug)) }
+            )
+        case .magazine:
+            ArticleCategoriesScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenArticleCategory: { slug, title in navigator.navigate(.articleList(slug: slug, title: title)) }
             )
         default:
             ComingSoonScreen(title: route.placeholderTitle, icon: RemixIcons.HammerLine, onBack: { navigator.popBackStack() })

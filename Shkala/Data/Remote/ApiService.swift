@@ -43,6 +43,19 @@ enum ApiService {
         try await api.call(.get, "api/v2/categories", as: CategoriesResponse.self)
     }
 
+    // فاز ۷/۱۳: برند و فهرست برندها، دسته‌بندی‌های مقاله
+    static func getBrand(_ slug: String) async throws -> ApiResponse<BrandResponse> {
+        try await api.call(.get, "api/v2/brands/\(enc(slug))", as: BrandResponse.self)
+    }
+
+    static func getBrandsList() async throws -> ApiResponse<BrandListResponse> {
+        try await api.call(.get, "api/v2/brands", as: BrandListResponse.self)
+    }
+
+    static func getArticleCategories() async throws -> ApiResponse<ArticleCategoriesResponse> {
+        try await api.call(.get, "api/v2/article-categories", as: ArticleCategoriesResponse.self)
+    }
+
     /// فاز ۱۰: مرتب‌سازی/فیلتر - دقیقاً همون پارامترهایی که ProductsArchiveService.php سایت می‌فهمه؛
     /// فیلترهای اختصاصی با فرمت filters[عنوان]=مقدار
     static func getProducts(

@@ -177,6 +177,34 @@ struct ScreenshotMode {
         case "map": nav.navigate(.mapPicker)
         case "orders": nav.navigate(.ordersList)
         case "checkout": nav.navigate(.checkout)
+        // مرحله‌ی ۵ - بخش ۱: تب دسته‌بندی‌ها (سه تب)، فهرست‌ها، جستجو، برند و مجله
+        case "categories": nav.selectTab(.CATEGORIES)
+        case "categories-brands":
+            PendingCategoriesTabViewModel.shared.requestedTab = 1
+            nav.selectTab(.CATEGORIES)
+        case "categories-articles":
+            PendingCategoriesTabViewModel.shared.requestedTab = 2
+            nav.selectTab(.CATEGORIES)
+        case "discount": nav.navigate(.categoryProducts(slug: AppRoute.DISCOUNT_PRODUCTS_SLUG, title: "پیشنهاد شگفت‌انگیز"))
+        case "latest": nav.navigate(.categoryProducts(slug: AppRoute.LATEST_PRODUCTS_SLUG, title: "جدیدترین محصولات"))
+        case "search": nav.navigate(.searchResults(query: "دوربین", categorySlug: nil))
+        case "magazine": nav.navigate(.magazine)
+        // اولین دسته‌ی دارای زیردسته (برای دیدن کاروسل زیردسته‌ها)
+        case "category-first", "category-list":
+            Task {
+                if case .success(let cats) = await CatalogRepository().getCategories(),
+                   let c = cats.first(where: { !($0.childs ?? []).isEmpty }) ?? cats.first {
+                    nav.navigate(.categoryProducts(slug: c.slug, title: c.title))
+                }
+            }
+        // اولین برندِ دارای محصول
+        case "brand-first":
+            Task {
+                if case .success(let brands) = await ContentRepository().getBrandsList(),
+                   let b = brands.first(where: { $0.productsCount > 0 }) ?? brands.first {
+                    nav.navigate(.brand(slug: b.slug))
+                }
+            }
         default: break
         }
     }

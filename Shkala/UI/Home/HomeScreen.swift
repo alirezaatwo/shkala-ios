@@ -710,7 +710,7 @@ func firstMatch(_ pattern: String, in text: String) -> String? {
 
 /// فاز ۱۷: یک شکست خط دستی نزدیک به وسط عنوان دسته‌بندی اضافه می‌کنه تا همه‌ی عنوان‌ها دوخطی و
 /// هم‌تراز باشن (عنوان چندکلمه‌ای: بین دو کلمه‌ای که به نصف کل عنوان نزدیک‌تره؛ تک‌کلمه‌ای: از وسط).
-private func forceTwoLineTitle(_ title: String) -> String {
+func forceTwoLineTitle(_ title: String) -> String {
     let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
     if trimmed.count <= 1 { return trimmed }
     let words = trimmed.split(separator: " ").map(String.init).filter { !$0.isBlankShk }
@@ -765,7 +765,7 @@ private struct CategoryPagerSection: View {
     }
 }
 
-private struct CategoryPagerItem: View {
+struct CategoryPagerItem: View {
     let category: CategoryDto
     let onClick: () -> Void
     @Environment(\.shkColors) private var colors
