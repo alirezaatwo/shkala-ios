@@ -153,7 +153,7 @@ private struct ArticleListCard: View {
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .background(colors.surfaceVariant)
-                .overlay(RemoteImage(url: article.image?.url, contentDescription: article.title, contentScale: .crop))
+                .overlay(RemoteImage(article.image?.url, contentDescription: article.title, contentScale: .crop))
                 .overlay(alignment: .topLeading) {
                     // برچسب دسته‌بندی روی تصویر
                     if let categoryTitle = article.category?.title, !categoryTitle.isBlankShk {

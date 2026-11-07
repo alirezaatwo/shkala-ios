@@ -124,7 +124,7 @@ private struct ArticleHero: View {
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .background(colors.surfaceVariant)
-                .overlay(RemoteImage(url: imageUrl, contentDescription: title, contentScale: .crop))
+                .overlay(RemoteImage(imageUrl, contentDescription: title, contentScale: .crop))
                 .clipped()
                 .overlay(alignment: .topLeading) {
                     Button(action: onBack) {

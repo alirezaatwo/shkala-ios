@@ -256,7 +256,7 @@ private struct SearchResultRow: View {
     var body: some View {
         Button(action: onClick) {
             HStack(spacing: 0) {
-                RemoteImage(url: result.images?.first?.link, contentDescription: result.title, contentScale: .crop)
+                RemoteImage(result.images?.first?.link, contentDescription: result.title, contentScale: .crop)
                     .frame(width: 52, height: 52)
                     .background(colors.surfaceVariant)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -464,7 +464,7 @@ private struct ProductHeaderCell: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(spacing: 0) {
-                RemoteImage(url: product.images?.first?.link, contentDescription: product.title, contentScale: .crop)
+                RemoteImage(product.images?.first?.link, contentDescription: product.title, contentScale: .crop)
                     .frame(width: 78, height: 78)
                     .background(colors.surfaceVariant)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
