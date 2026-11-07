@@ -27,4 +27,26 @@ struct ContentRepository {
             return .error("خطا در اتصال به اینترنت.")
         }
     }
+
+    // فاز ۳۱: پرسش‌های متداول
+    func getFaqs() async -> ApiResult<[FaqDto]> {
+        do {
+            let response = try await ApiService.getFaqs()
+            if response.isSuccessful, let body = response.body?.faqs { return .success(body) }
+            return .error("دریافت پرسش‌های متداول با خطا مواجه شد.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
+
+    // فاز ۳۲: صفحات ثابت اسکریپت (مثل «قوانین و شرایط») - محتوای HTML خام
+    func getPage(_ slug: String) async -> ApiResult<PageDto> {
+        do {
+            let response = try await ApiService.getPage(slug)
+            if response.isSuccessful, let body = response.body?.page { return .success(body) }
+            return .error("صفحه یافت نشد.")
+        } catch {
+            return .error("خطا در اتصال به اینترنت.")
+        }
+    }
 }

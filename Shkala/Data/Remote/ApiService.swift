@@ -380,6 +380,29 @@ enum ApiService {
         try await api.callMultipart(.post, "api/v2/prefactors/\(enc(uuid))/pay-card-to-card", parts: parts, as: PrefactorPayResponse.self)
     }
 
+    // ابزارهای کاربردی: فهرست ابزارها و ماشین‌حساب هارد دوربین
+    static func getTools() async throws -> ApiResponse<ToolsResponse> {
+        try await api.call(.get, "api/v2/tools", as: ToolsResponse.self)
+    }
+
+    static func getHddCalculator() async throws -> ApiResponse<HddToolResponse> {
+        try await api.call(.get, "api/v2/tools/hdd-calculator", as: HddToolResponse.self)
+    }
+
+    static func getHddProducts(tb: Double) async throws -> ApiResponse<HddProductsResponse> {
+        try await api.call(.get, "api/v2/tools/hdd-calculator/products", query: ["tb": String(tb)], as: HddProductsResponse.self)
+    }
+
+    // فاز ۳۱: پرسش‌های متداول
+    static func getFaqs() async throws -> ApiResponse<FaqsResponse> {
+        try await api.call(.get, "api/v2/faqs", as: FaqsResponse.self)
+    }
+
+    // فاز ۳۲: صفحات ثابت اسکریپت (مثل «قوانین و شرایط») - نمایش نیتیو محتوای HTML
+    static func getPage(_ slug: String) async throws -> ApiResponse<PageResponse> {
+        try await api.call(.get, "api/v2/pages/\(enc(slug))", as: PageResponse.self)
+    }
+
     static func getTickets(page: Int = 1, search: String? = nil, waitingAdmin: Bool? = nil, waitingUser: Bool? = nil, closed: Bool? = nil) async throws -> ApiResponse<TicketsResponse> {
         try await api.call(.get, "api/v2/tickets", query: [
             "page": String(page), "search": search, "waiting_admin": qb(waitingAdmin), "waiting_user": qb(waitingUser), "closed": qb(closed),

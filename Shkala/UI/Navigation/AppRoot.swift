@@ -684,6 +684,27 @@ struct AppRoot: View {
                 onAddAddress: { navigator.navigate(.addressForm(id: nil)) },
                 onEditAddress: { address in navigator.navigate(.addressForm(id: address.id)) }
             )
+        case .tools:
+            ToolsScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenTool: { tool in
+                    if tool.key == HDD_CALCULATOR_KEY {
+                        navigator.navigate(.hddCalculator)
+                    } else if let url = tool.url, !url.isBlankShk {
+                        navigator.navigate(.webpage(url: url))
+                    }
+                }
+            )
+        case .hddCalculator:
+            HddCalculatorScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) },
+                onOpenLink: { url in navigator.openAppLink(url) }
+            )
+        case .faqList:
+            FaqScreen(onBack: { navigator.popBackStack() }, onOpenContact: { navigator.navigate(.contactUs) })
+        case .terms:
+            TermsScreen(onBack: { navigator.popBackStack() })
         case .transactionsList:
             TransactionsListScreen(onBack: { navigator.popBackStack() })
         default:
