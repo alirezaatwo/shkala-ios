@@ -12,11 +12,6 @@ final class StartupDialogsState: ObservableObject {
     @Published fileprivate(set) var isIdle = false
 }
 
-/// نسخه‌ی نصب‌شده‌ی اپ (versionName اندروید = CFBundleShortVersionString)
-func currentAppVersionName() -> String {
-    (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "0"
-}
-
 /**
  * دیالوگ‌های شروع اپ به‌ترتیب (هیچ‌وقت دو تا روی هم نمیان):
  *  ۱. هشدار VPN (در صورت روشن بودن)
