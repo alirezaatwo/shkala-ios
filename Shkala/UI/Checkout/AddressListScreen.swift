@@ -7,7 +7,7 @@ import SwiftUI
 // آدرس.
 // ===================================================================================
 
-private enum AddressScreenMode { LIST, METHODS }
+private enum AddressScreenMode { case LIST, METHODS }
 
 struct AddressListScreen: View {
     let onBack: () -> Void
