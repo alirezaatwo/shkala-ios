@@ -13,6 +13,7 @@ import Foundation
 enum ApiConstants {
     /// آدرس سایت (با اسلش انتهایی) - همان BASE_URL اپ اندروید
     static let BASE_URL = "https://shkala.com/"
+    static let APP_ERRORS_PATH = "api/v2/app/errors"
 }
 
 /// معادل retrofit2.Response: کد HTTP، بدنه‌ی رمزگشایی‌شده (فقط در پاسخ موفق ۲xx) و بدنه‌ی خطا
@@ -96,6 +97,28 @@ final class ApiClient {
         return request
     }
 
+    /**
+     * معادل ErrorRecordingInterceptor اپ اندروید: ثبت خطاهای API برای گزارش خطا (فقط با رضایت کاربر - خودِ
+     * ErrorReporter چک می‌کنه). فقط مسیر درخواست (بدون query، هدر/توکن و بدنه). کدهای «عادی» ثبت نمی‌شن:
+     * 401، 419، 422، 429 و 503. قطعی اینترنت/تایم‌اوت ثبت نمی‌شه؛ خطای خودِ ارسال گزارش خطا هم (جلوگیری از چرخه).
+     */
+    private static let IGNORED_ERROR_CODES: Set<Int> = [401, 419, 422, 429, 503]
+
+    static func recordApiError(_ request: URLRequest, _ response: URLResponse) {
+        guard let http = response as? HTTPURLResponse else { return }
+        let code = http.statusCode
+        guard code >= 400, !IGNORED_ERROR_CODES.contains(code) else { return }
+        let path = request.url.map { URLComponents(url: $0, resolvingAgainstBaseURL: false)?.percentEncodedPath ?? $0.path } ?? ""
+        let trimmed = path.drop(while: { $0 == "/" })
+        if trimmed.hasPrefix(ApiConstants.APP_ERRORS_PATH) { return }
+        let reason = HTTPURLResponse.localizedString(forStatusCode: code)
+        ErrorReporter.recordApiError(
+            endpoint: path,
+            httpCode: code,
+            message: "HTTP \(code) \(request.httpMethod ?? "GET") \(reason)".trimmingCharacters(in: .whitespaces)
+        )
+    }
+
     static func formEncode(_ fields: [String: String?]) -> String {
         var allowed = CharacterSet.alphanumerics
         allowed.insert(charactersIn: "-._*")
@@ -111,6 +134,7 @@ final class ApiClient {
     func send<T: Decodable>(_ request: URLRequest, as type: T.Type) async throws -> ApiResponse<T> {
         let (data, response) = try await session.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        Self.recordApiError(request, response)
         if (200..<300).contains(code) {
             let body = try ShkJSON.decoder.decode(T.self, from: data)
             return ApiResponse(code: code, body: body, errorBody: nil)
@@ -123,6 +147,7 @@ final class ApiClient {
         let request = makeRequest(method, path, query: [:], queryList: [], jsonBody: nil, formBody: nil, headers: [:])
         let (data, response) = try await session.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        Self.recordApiError(request, response)
         if (200..<300).contains(code) { return ApiResponse(code: code, body: data, errorBody: nil) }
         return ApiResponse(code: code, body: nil, errorBody: data)
     }
@@ -132,6 +157,7 @@ final class ApiClient {
         let request = makeRequest(method, path, query: [:], queryList: [], jsonBody: nil, formBody: form, headers: [:])
         let (data, response) = try await session.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        Self.recordApiError(request, response)
         if (200..<300).contains(code) { return ApiResponse(code: code, body: true, errorBody: nil) }
         return ApiResponse(code: code, body: nil, errorBody: data)
     }

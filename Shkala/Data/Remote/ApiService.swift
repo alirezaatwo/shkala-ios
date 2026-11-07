@@ -43,6 +43,51 @@ enum ApiService {
         try await api.call(.get, "api/v2/categories", as: CategoriesResponse.self)
     }
 
+    // فاز ۷/۱۳: برند و فهرست برندها، دسته‌بندی‌های مقاله
+    static func getBrand(_ slug: String) async throws -> ApiResponse<BrandResponse> {
+        try await api.call(.get, "api/v2/brands/\(enc(slug))", as: BrandResponse.self)
+    }
+
+    static func getBrandsList() async throws -> ApiResponse<BrandListResponse> {
+        try await api.call(.get, "api/v2/brands", as: BrandListResponse.self)
+    }
+
+    static func getArticleCategories() async throws -> ApiResponse<ArticleCategoriesResponse> {
+        try await api.call(.get, "api/v2/article-categories", as: ArticleCategoriesResponse.self)
+    }
+
+    // پاپ‌آپ‌ساز: عضویت خبرنامه از بلوک «خبرنامه»ی پاپ‌آپ (جدول خبرنامه‌ی سایت)
+    static func subscribePopupNewsletter(_ value: String, pid: Int64) async throws -> ApiResponse<FormAnswerSubmitResponse> {
+        try await api.call(.post, "api/v2/popup/newsletter", form: ["value": value, "pid": String(pid)], as: FormAnswerSubmitResponse.self)
+    }
+
+    // چند پاپ‌آپ: پاپ‌آپ‌های یک صفحه (screen = home / product / category / brand / cart / checkout / blog / other)
+    static func getPopups(screen: String, slug: String?) async throws -> ApiResponse<AppPopupsResponse> {
+        try await api.call(.get, "api/v2/popups", query: ["screen": screen, "slug": slug], as: AppPopupsResponse.self)
+    }
+
+    // آمار پاپ‌آپ: view / click / close / submit
+    static func popupEvent(pid: Int64, event: String) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(.post, "api/v2/popup/event", form: ["pid": String(pid), "event": event])
+    }
+
+    static func getArticles(category: String? = nil, page: Int = 1) async throws -> ApiResponse<ArticlesResponse> {
+        try await api.call(.get, "api/v2/articles", query: ["category": category, "page": String(page)], as: ArticlesResponse.self)
+    }
+
+    static func getArticleDetail(_ slug: String) async throws -> ApiResponse<ArticleDetailResponse> {
+        try await api.call(.get, "api/v2/articles/\(enc(slug))", as: ArticleDetailResponse.self)
+    }
+
+    // فاز ۱۶: دیدگاه‌های مقاله - فهرست عمومی (بدون نیاز به لاگین) و ثبت دیدگاه (نیازمند لاگین)
+    static func getArticleComments(_ slug: String) async throws -> ApiResponse<ArticleCommentsResponse> {
+        try await api.call(.get, "api/v2/articles/\(enc(slug))/comments", as: ArticleCommentsResponse.self)
+    }
+
+    static func addArticleComment(_ slug: String, content: String, replyTo: Int? = nil) async throws -> ApiResponse<ArticleAddCommentResponse> {
+        try await api.call(.post, "api/v2/articles/\(enc(slug))/comments", form: ["content": content, "reply_to": replyTo.map { String($0) }], as: ArticleAddCommentResponse.self)
+    }
+
     /// فاز ۱۰: مرتب‌سازی/فیلتر - دقیقاً همون پارامترهایی که ProductsArchiveService.php سایت می‌فهمه؛
     /// فیلترهای اختصاصی با فرمت filters[عنوان]=مقدار
     static func getProducts(
@@ -177,6 +222,15 @@ enum ApiService {
         try await api.call(.post, "api/v2/compares/\(enc(slug))", form: ["type": type], as: CompareActionResponse.self)
     }
 
+    static func removeFromCompare(_ compareId: Int) async throws -> ApiResponse<CompareActionResponse> {
+        try await api.call(.delete, "api/v2/compares/\(compareId)", as: CompareActionResponse.self)
+    }
+
+    // فاز ۹: جست‌وجوی محصول برای افزودن به مقایسه (فقط هم‌دسته با محصولات فعلی مقایسه)
+    static func searchCompareProducts(search: String? = nil, page: Int = 1) async throws -> ApiResponse<CompareSearchResponse> {
+        try await api.call(.get, "api/v2/compares-search", query: ["search": search, "page": String(page)], as: CompareSearchResponse.self)
+    }
+
     // ---- سبد خرید ----
 
     static func getCart() async throws -> ApiResponse<CartResponse> {
@@ -304,6 +358,190 @@ enum ApiService {
     // ---- سفارش‌های من ----
 
     /// جستجو بر اساس شماره‌ی سفارش (روی rejected_orders هم اعمال می‌شه)
+    // ---- مرحله‌ی ۵: حساب کاربری ----
+
+    /// Boolean رتروفیت در کوئری = «true»/«false»
+    private static func qb(_ v: Bool?) -> String? { v.map { $0 ? "true" : "false" } }
+
+    static func getAccountSummary() async throws -> ApiResponse<AccountSummaryResponse> {
+        try await api.call(.get, "api/v2/my-orders-summary", as: AccountSummaryResponse.self)
+    }
+
+    static func getTransactions(page: Int = 1, search: String? = nil, accepted: Bool? = nil, rejected: Bool? = nil,
+                                deposit: Bool? = nil, withdrawal: Bool? = nil) async throws -> ApiResponse<TransactionsResponse> {
+        try await api.call(.get, "api/v2/transactions", query: [
+            "page": String(page), "search": search, "accepted": qb(accepted), "rejected": qb(rejected),
+            "deposit": qb(deposit), "withdrawal": qb(withdrawal),
+        ], as: TransactionsResponse.self)
+    }
+
+    static func getNotifications(page: Int = 1) async throws -> ApiResponse<NotificationsResponse> {
+        try await api.call(.get, "api/v2/notifications", query: ["page": String(page)], as: NotificationsResponse.self)
+    }
+
+    static func markNotificationAsRead(_ id: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/notifications/\(enc(id))/mark-read", as: SimpleStatusResponse.self)
+    }
+
+    static func getPrefactors(page: Int = 1, search: String? = nil, paid: Bool? = nil, waitingPayment: Bool? = nil) async throws -> ApiResponse<PrefactorsResponse> {
+        try await api.call(.get, "api/v2/prefactors", query: [
+            "page": String(page), "search": search, "paid": qb(paid), "waiting_payment": qb(waitingPayment),
+        ], as: PrefactorsResponse.self)
+    }
+
+    static func getPrefactorDetail(_ uuid: String) async throws -> ApiResponse<PrefactorDetailResponse> {
+        try await api.call(.get, "api/v2/prefactors/\(enc(uuid))", as: PrefactorDetailResponse.self)
+    }
+
+    static func selectPrefactorAddress(_ uuid: String, addressId: Int) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/prefactors/\(enc(uuid))/address", form: ["address_id": String(addressId)], as: SimpleStatusResponse.self)
+    }
+
+    // فاز ۳۱: انتخاب تحویل حضوری از شعبه برای پیش‌فاکتور - دقیقاً مثل
+    // selectShopAddress تسویه‌حساب عادی، فقط مسیرش مخصوص همین پیش‌فاکتوره
+    static func selectPrefactorShopAddress(_ uuid: String, receptionCenterId: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/prefactors/\(enc(uuid))/shop-address", form: ["reception_center_id": receptionCenterId], as: SimpleStatusResponse.self)
+    }
+
+    static func selectPrefactorShippingMethod(_ uuid: String, type: String, consignmentUuid: String, sendMethodUuid: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/prefactors/\(enc(uuid))/shipping-method", form: [
+            "type": type, "consignment_uuid": consignmentUuid, "send_method_uuid": sendMethodUuid,
+        ], as: SimpleStatusResponse.self)
+    }
+
+    static func getPrefactorGateways(_ uuid: String) async throws -> ApiResponse<PrefactorGatewaysResponse> {
+        try await api.call(.get, "api/v2/prefactors/\(enc(uuid))/gateways", as: PrefactorGatewaysResponse.self)
+    }
+
+    static func payPrefactor(_ uuid: String, paymentGateway: String, description: String? = nil) async throws -> ApiResponse<PrefactorPayResponse> {
+        try await api.call(.post, "api/v2/prefactors/\(enc(uuid))/pay", form: ["payment_gateway": paymentGateway, "description": description], as: PrefactorPayResponse.self)
+    }
+
+    static func payPrefactorCardToCard(_ uuid: String, parts: [MultipartPart]) async throws -> ApiResponse<PrefactorPayResponse> {
+        try await api.callMultipart(.post, "api/v2/prefactors/\(enc(uuid))/pay-card-to-card", parts: parts, as: PrefactorPayResponse.self)
+    }
+
+    // ابزارهای کاربردی: فهرست ابزارها و ماشین‌حساب هارد دوربین
+    static func getTools() async throws -> ApiResponse<ToolsResponse> {
+        try await api.call(.get, "api/v2/tools", as: ToolsResponse.self)
+    }
+
+    static func getHddCalculator() async throws -> ApiResponse<HddToolResponse> {
+        try await api.call(.get, "api/v2/tools/hdd-calculator", as: HddToolResponse.self)
+    }
+
+    static func getHddProducts(tb: Double) async throws -> ApiResponse<HddProductsResponse> {
+        try await api.call(.get, "api/v2/tools/hdd-calculator/products", query: ["tb": String(tb)], as: HddProductsResponse.self)
+    }
+
+    // فاز ۳۱: پرسش‌های متداول
+    static func getFaqs() async throws -> ApiResponse<FaqsResponse> {
+        try await api.call(.get, "api/v2/faqs", as: FaqsResponse.self)
+    }
+
+    // فاز ۳۲: صفحات ثابت اسکریپت (مثل «قوانین و شرایط») - نمایش نیتیو محتوای HTML
+    static func getPage(_ slug: String) async throws -> ApiResponse<PageResponse> {
+        try await api.call(.get, "api/v2/pages/\(enc(slug))", as: PageResponse.self)
+    }
+
+    // فاز ۳۲: فرم‌های داینامیک اسکریپت (مثل «تماس با ما») - نمایش نیتیو + ثبت پاسخ
+    static func getForm(_ slug: String) async throws -> ApiResponse<FormResponse> {
+        try await api.call(.get, "api/v2/forms/\(enc(slug))", as: FormResponse.self)
+    }
+
+    static func submitFormAnswer(_ slug: String, body: FormAnswerSubmitRequest) async throws -> ApiResponse<FormAnswerSubmitResponse> {
+        try await api.call(.post, "api/v2/forms/\(enc(slug))/answer", body: body, as: FormAnswerSubmitResponse.self)
+    }
+
+    static func getTickets(page: Int = 1, search: String? = nil, waitingAdmin: Bool? = nil, waitingUser: Bool? = nil, closed: Bool? = nil) async throws -> ApiResponse<TicketsResponse> {
+        try await api.call(.get, "api/v2/tickets", query: [
+            "page": String(page), "search": search, "waiting_admin": qb(waitingAdmin), "waiting_user": qb(waitingUser), "closed": qb(closed),
+        ], as: TicketsResponse.self)
+    }
+
+    static func getTicketPriorities() async throws -> ApiResponse<TicketPrioritiesResponse> {
+        try await api.call(.get, "api/v2/tickets/priorities", as: TicketPrioritiesResponse.self)
+    }
+
+    static func createTicket(parts: [MultipartPart]) async throws -> ApiResponse<TicketStoreResponse> {
+        try await api.callMultipart(.post, "api/v2/tickets", parts: parts, as: TicketStoreResponse.self)
+    }
+
+    static func getTicketDetail(_ id: Int) async throws -> ApiResponse<TicketDetailResponse> {
+        try await api.call(.get, "api/v2/tickets/\(id)", as: TicketDetailResponse.self)
+    }
+
+    static func answerTicket(_ id: Int, content: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/tickets/\(id)/answer", form: ["content": content], as: SimpleStatusResponse.self)
+    }
+
+    static func sendTicketAttachment(_ id: Int, parts: [MultipartPart]) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.callMultipart(.post, "api/v2/tickets/\(id)/attachment", parts: parts, as: SimpleStatusResponse.self)
+    }
+
+    static func getFavorites(page: Int = 1, search: String? = nil) async throws -> ApiResponse<FavoritesResponse> {
+        try await api.call(.get, "api/v2/favorites", query: ["page": String(page), "search": search], as: FavoritesResponse.self)
+    }
+
+    static func getMyComments(page: Int = 1, search: String? = nil) async throws -> ApiResponse<CommentsResponse> {
+        try await api.call(.get, "api/v2/comments", query: ["page": String(page), "search": search], as: CommentsResponse.self)
+    }
+
+    static func getProfile() async throws -> ApiResponse<ProfileEditResponse> {
+        try await api.call(.get, "api/v2/profile", as: ProfileEditResponse.self)
+    }
+
+    static func updateProfile(parts: [MultipartPart]) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.callMultipart(.post, "api/v2/profile", parts: parts, as: SimpleStatusResponse.self)
+    }
+
+    static func changePassword(current: String?, new: String, newConfirmation: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/profile/change-password", form: ["current": current, "new": new, "new_confirmation": newConfirmation], as: SimpleStatusResponse.self)
+    }
+
+    // ---- کیف پول ----
+
+    static func getWalletInfo() async throws -> ApiResponse<WalletInfoResponse> {
+        try await api.call(.get, "api/v2/wallet", as: WalletInfoResponse.self)
+    }
+
+    static func chargeWallet(amount: Int64, paymentGateway: String) async throws -> ApiResponse<WalletChargeResponse> {
+        try await api.call(.post, "api/v2/wallet/charge", form: ["amount": String(amount), "payment_gateway": paymentGateway], as: WalletChargeResponse.self)
+    }
+
+    static func addWithdrawal(amount: Int64, bankCardId: Int) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/wallet/withdrawals", form: ["amount": String(amount), "bank_card": String(bankCardId)], as: SimpleStatusResponse.self)
+    }
+
+    static func deleteWithdrawal(_ id: Int) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.delete, "api/v2/wallet/withdrawals/\(id)", as: SimpleStatusResponse.self)
+    }
+
+    static func addBankCard(name: String, cardNumber: String, shebaNumber: String) async throws -> ApiResponse<AddBankCardResponse> {
+        try await api.call(.post, "api/v2/wallet/bank-cards", form: ["name": name, "card_number": cardNumber, "sheba_number": shebaNumber], as: AddBankCardResponse.self)
+    }
+
+    static func deleteBankCard(_ id: Int) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.delete, "api/v2/wallet/bank-cards/\(id)", as: SimpleStatusResponse.self)
+    }
+
+    // ویرایش کارت بانکی (مسیر جدید API؛ سایت فقط افزودن/حذف داره)
+    static func updateBankCard(id: Int, name: String, cardNumber: String, shebaNumber: String) async throws -> ApiResponse<AddBankCardResponse> {
+        try await api.call(.post, "api/v2/wallet/bank-cards/\(id)/update", form: ["name": name, "card_number": cardNumber, "sheba_number": shebaNumber], as: AddBankCardResponse.self)
+    }
+
+    static func getLastChargeTransaction() async throws -> ApiResponse<LastChargeTransactionResponse> {
+        try await api.call(.get, "api/v2/wallet/last-charge-transaction", as: LastChargeTransactionResponse.self)
+    }
+
+    static func getSessions() async throws -> ApiResponse<SessionsResponse> {
+        try await api.call(.get, "api/v2/sessions", as: SessionsResponse.self)
+    }
+
+    static func terminateSession(_ id: Int) async throws -> ApiResponse<TerminateSessionResponse> {
+        try await api.call(.delete, "api/v2/sessions/\(id)", as: TerminateSessionResponse.self)
+    }
+
     static func getMyOrders(page: Int = 1, search: String? = nil) async throws -> ApiResponse<OrdersListResponse> {
         try await api.call(.get, "api/v2/my-orders", query: ["page": String(page), "search": search], as: OrdersListResponse.self)
     }
@@ -329,6 +567,41 @@ enum ApiService {
             headers: ["X-Shk-Install": installId, "X-Shk-Version": appVersion],
             as: AppStatusResponse.self
         )
+    }
+
+    /// آخرین نسخه‌ی منتشرشده؛ سرور با هدر X-Shk-Platform: ios (همه‌ی درخواست‌ها) نسخه‌ی iOS رو برمی‌گردونه
+    static func getAppLatestVersion() async throws -> ApiResponse<AppLatestVersionResponse> {
+        try await api.call(.get, "api/v2/app/latest-version", query: ["platform": "ios"], as: AppLatestVersionResponse.self)
+    }
+
+    // گزارش حضور نصب (یک‌بار در هر اجرای اپ) - بدون نیاز به ورود
+    static func sendAppHeartbeat(_ body: AppHeartbeatRequest) async throws -> ApiResponse<AppTelemetryResponse> {
+        try await api.call(.post, "api/v2/app/heartbeat", body: body, as: AppTelemetryResponse.self)
+    }
+
+    // ارسال گزارش خطاهای اپ (حداکثر ۲۰ مورد در هر درخواست؛ فقط با رضایت کاربر)
+    static func uploadAppErrors(_ body: AppErrorsUploadRequest) async throws -> ApiResponse<AppTelemetryResponse> {
+        try await api.call(.post, ApiConstants.APP_ERRORS_PATH, body: body, as: AppTelemetryResponse.self)
+    }
+
+    // اعلان‌های اپ بدون FCM: اعلان‌های جدیدتر از آخرین شناسه‌ی دیده‌شده (بدون نیاز به ورود)
+    static func getAppNotifications(afterId: Int64, installId: String?) async throws -> ApiResponse<PushNotificationsResponse> {
+        try await api.call(
+            .get, "api/v2/app/notifications",
+            query: ["after_id": String(afterId)],
+            headers: ["X-Shk-Install": installId],
+            as: PushNotificationsResponse.self
+        )
+    }
+
+    // ثبت «اعلان نمایش داده شد» (idempotent)
+    static func markAppNotificationReceived(id: Int64, _ body: PushEventRequest) async throws -> ApiResponse<AppTelemetryResponse> {
+        try await api.call(.post, "api/v2/app/notifications/\(id)/received", body: body, as: AppTelemetryResponse.self)
+    }
+
+    // ثبت «کاربر روی اعلان زد» (idempotent؛ کلیک یعنی دریافت هم شده)
+    static func markAppNotificationClicked(id: Int64, _ body: PushEventRequest) async throws -> ApiResponse<AppTelemetryResponse> {
+        try await api.call(.post, "api/v2/app/notifications/\(id)/clicked", body: body, as: AppTelemetryResponse.self)
     }
 }
 

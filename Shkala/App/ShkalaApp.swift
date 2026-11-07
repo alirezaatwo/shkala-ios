@@ -2,9 +2,28 @@ import SwiftUI
 
 @main
 struct ShkalaApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // معادل ShkalaApplication.onCreate اندروید: گزارش خطا (هندلر کرش) و اعلان‌ها
+        ErrorReporter.initialize()
+        PushNotifier.setup()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
+        }
+        // برگشتن اپ به جلو: بررسی اعلان‌های جدید (معادل onResume اکتیویتی اندروید)
+        .onChange(of: scenePhase) { phase in
+            if phase == .active && !ScreenshotMode.isActive { PushSync.checkNow() }
+            // رفتن اپ به پس‌زمینه: زمان‌بندی بررسی بعدی اعلان‌ها (بعد از ثبت هندلر توسط SwiftUI)
+            if phase == .background && !ScreenshotMode.isActive { PushSync.scheduleBackgroundRefresh() }
+        }
+        // بررسی دوره‌ای اعلان‌ها در پس‌زمینه (معادل PushJobService اندروید؛ زمان اجرا دست iOS است)
+        .backgroundTask(.appRefresh(PushSync.BACKGROUND_TASK_ID)) {
+            PushSync.scheduleBackgroundRefresh()
+            _ = await PushSync.shared.sync()
         }
     }
 }
@@ -18,6 +37,8 @@ struct RootView: View {
     @State private var stage: AppStage = .splash
     /// هر بار «تلاش مجدد» = بارگذاری مجدد کامل اپ از اسپلش (مثل recreate() اندروید)
     @State private var launchId = UUID()
+    /// هشدار VPN موقع بالا اومدن اپ (معادل showStartupVpnWarning اندروید)
+    @State private var showStartupVpnWarning = false
 
     private let screenshot = ScreenshotMode.current
 
@@ -35,6 +56,9 @@ struct RootView: View {
             switch stage {
             case .splash:
                 SplashStage(viewModel: startupViewModel, onRetry: restart) {
+                    showStartupVpnWarning = isVpnActive()
+                    // آمار نصب، اعلان‌های جدید و صف گزارش خطا (یک‌بار در هر اجرا، در پس‌زمینه)
+                    AppTelemetry.onStartupCompleted()
                     stage = IntroPreferenceManager.hasSeenIntro() ? .main : .intro
                 }
             case .intro:
@@ -47,10 +71,17 @@ struct RootView: View {
                 // معادل MaintenanceGate { AppRoot } + لایه‌ی همیشگی گفتینو
                 ZStack {
                     MaintenanceGate {
-                        AppRoot(
-                            isDarkTheme: themePreference.isDarkTheme,
-                            onToggleTheme: { themePreference.setDarkTheme(!themePreference.isDarkTheme) }
-                        )
+                        ZStack {
+                            AppRoot(
+                                isDarkTheme: themePreference.isDarkTheme,
+                                onToggleTheme: { themePreference.setDarkTheme(!themePreference.isDarkTheme) }
+                            )
+                            // دیالوگ‌های شروع به‌ترتیب: هشدار VPN ← ...
+                            StartupDialogsHost(
+                                showVpnWarning: showStartupVpnWarning,
+                                onVpnWarningDismiss: { showStartupVpnWarning = false }
+                            )
+                        }
                     }
                     GoftinoChatOverlay()
                 }
@@ -91,6 +122,7 @@ struct RootView: View {
         case .route(let name):
             AppRoot(isDarkTheme: mode.dark)
                 .systemBarsBackground()
+                .overlay { ScreenshotUpdateDialogHost() }
                 .task { ScreenshotMode.openRoute(name) }
         case .maintenance(let countdown):
             MaintenanceScreen(
@@ -177,6 +209,58 @@ struct ScreenshotMode {
         case "map": nav.navigate(.mapPicker)
         case "orders": nav.navigate(.ordersList)
         case "checkout": nav.navigate(.checkout)
+        // مرحله‌ی ۵ - بخش ۱: تب دسته‌بندی‌ها (سه تب)، فهرست‌ها، جستجو، برند و مجله
+        case "categories": nav.selectTab(.CATEGORIES)
+        case "categories-brands":
+            PendingCategoriesTabViewModel.shared.requestedTab = 1
+            nav.selectTab(.CATEGORIES)
+        case "categories-articles":
+            PendingCategoriesTabViewModel.shared.requestedTab = 2
+            nav.selectTab(.CATEGORIES)
+        case "discount": nav.navigate(.categoryProducts(slug: AppRoute.DISCOUNT_PRODUCTS_SLUG, title: "پیشنهاد شگفت‌انگیز"))
+        case "latest": nav.navigate(.categoryProducts(slug: AppRoute.LATEST_PRODUCTS_SLUG, title: "جدیدترین محصولات"))
+        case "search": nav.navigate(.searchResults(query: "دوربین", categorySlug: nil))
+        case "magazine": nav.navigate(.magazine)
+        // اولین دسته‌ی دارای زیردسته (برای دیدن کاروسل زیردسته‌ها)
+        case "category-first", "category-list":
+            Task {
+                if case .success(let cats) = await CatalogRepository().getCategories(),
+                   let c = cats.first(where: { !($0.childs ?? []).isEmpty }) ?? cats.first {
+                    nav.navigate(.categoryProducts(slug: c.slug, title: c.title))
+                }
+            }
+        // اولین برندِ دارای محصول
+        case "brand-first":
+            Task {
+                if case .success(let brands) = await ContentRepository().getBrandsList(),
+                   let b = brands.first(where: { $0.productsCount > 0 }) ?? brands.first {
+                    nav.navigate(.brand(slug: b.slug))
+                }
+            }
+        // مرحله‌ی ۵ - بخش ۴ تا ۷: ابزارها، پرسش‌ها، قوانین، تماس، مقاله‌ها، مقایسه، اطلاعیه و ...
+        case "tools": nav.navigate(.tools)
+        case "hdd": nav.navigate(.hddCalculator)
+        case "faq": nav.navigate(.faqList)
+        case "terms": nav.navigate(.terms)
+        case "contact": nav.navigate(.contactUs)
+        case "articles": nav.navigate(.articleList(slug: ALL_ARTICLES_SLUG, title: "مجله"))
+        case "compare": nav.navigate(.compare)
+        case "in-carts": nav.navigate(.inCartsNow)
+        case "announcement": nav.navigate(.announcement)
+        // مرحله‌ی ۶: مودال بروزرسانی (عادی / اجباری) با داده‌ی نمونه
+        case "update": AppUpdateViewModel.shared.showScreenshotPreview(forced: false)
+        case "update-forced": AppUpdateViewModel.shared.showScreenshotPreview(forced: true)
+        case "guaranty": nav.navigate(.webpage(url: ApiConstants.BASE_URL.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/guaranty/"))
+        // اولین مقاله‌ی مجله (صفحه‌ی مقاله + دیدگاه‌ها)
+        case "article-first":
+            Task {
+                let repo = ContentRepository()
+                if case .success(let page) = await repo.getArticles(),
+                   let a = page.items.first,
+                   case .success(let detail) = await repo.getArticleDetail(a.slug) {
+                    nav.navigate(.articleDetail(slug: a.slug, title: detail.title, html: detail.content ?? "", imageUrl: a.image?.url))
+                }
+            }
         default: break
         }
     }
@@ -291,4 +375,16 @@ struct ScreenshotScrollOffset: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {}
+}
+
+/// فقط عکس‌برداری: مودال بروزرسانی (در اپ واقعی داخل StartupDialogsHost رندر می‌شه)
+private struct ScreenshotUpdateDialogHost: View {
+    @ObservedObject private var viewModel = AppUpdateViewModel.shared
+    var body: some View {
+        Color.clear
+            .allowsHitTesting(false)
+            .siteDialog(isPresented: $viewModel.showDialog, dismissOnClickOutside: false) {
+                AppUpdateDialog(viewModel: viewModel)
+            }
+    }
 }

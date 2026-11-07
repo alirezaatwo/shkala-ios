@@ -197,3 +197,15 @@ struct AppContactsDto: ShkDTO {
         baleUrl = c.lenientString(.baleUrl)
     }
 }
+
+/// چند پاپ‌آپ: پاپ‌آپ‌های یک صفحه (api/v2/popups)
+struct AppPopupsResponse: ShkDTO {
+    let status: String?
+    let popups: [AppPopupDto]?
+    enum CodingKeys: String, CodingKey { case status, popups }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        status = c.lenientString(.status)
+        popups = c.lossyList(AppPopupDto.self, .popups)
+    }
+}

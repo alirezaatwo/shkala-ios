@@ -40,6 +40,39 @@ struct AccountRepository {
         }
     }
 
+    func getAccountSummary() async -> ApiResult<AccountSummaryResponse> {
+        await safeCall {
+            let r = try await ApiService.getAccountSummary()
+            if r.isSuccessful, let body = r.body { return .success(body) }
+            return .error("دریافت آمار حساب با خطا مواجه شد.")
+        }
+    }
+
+    func getTransactions(_ page: Int = 1, search: String? = nil, accepted: Bool? = nil, rejected: Bool? = nil,
+                         deposit: Bool? = nil, withdrawal: Bool? = nil) async -> ApiResult<TransactionsResponse> {
+        await safeCall {
+            let r = try await ApiService.getTransactions(page: page, search: search, accepted: accepted, rejected: rejected, deposit: deposit, withdrawal: withdrawal)
+            if r.isSuccessful, let body = r.body { return .success(body) }
+            return .error("دریافت تراکنش‌ها با خطا مواجه شد.")
+        }
+    }
+
+    func getNotifications(_ page: Int = 1) async -> ApiResult<NotificationsResponse> {
+        await safeCall {
+            let r = try await ApiService.getNotifications(page: page)
+            if r.isSuccessful, let body = r.body { return .success(body) }
+            return .error("دریافت اعلان‌ها با خطا مواجه شد.")
+        }
+    }
+
+    func markNotificationAsRead(_ id: String) async -> ApiResult<Void> {
+        await safeCall {
+            let r = try await ApiService.markNotificationAsRead(id)
+            if r.isSuccessful { return .success(()) }
+            return .error("علامت‌گذاری اعلان با خطا مواجه شد.")
+        }
+    }
+
     private func safeCall<T>(_ block: () async throws -> ApiResult<T>) async -> ApiResult<T> {
         do {
             return try await block()

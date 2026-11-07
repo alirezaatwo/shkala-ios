@@ -99,6 +99,7 @@ struct AppDrawerContent: View {
 
     @State private var seals: [TrustSealDto] = AppDrawerContent.cachedSeals
     @State private var social: SocialLinksResponse? = AppDrawerContent.cachedSocial
+    @ObservedObject private var updateViewModel = AppUpdateViewModel.shared
 
     // نگه‌داری در حافظه تا باز شدن دوباره‌ی منو بدون پرش باشه (در اندروید منو هر بار از نو بارگذاری می‌شه)
     private static var cachedSeals: [TrustSealDto] = []
@@ -186,18 +187,47 @@ struct AppDrawerContent: View {
                         .shkFont(11)
                         .foregroundColor(colors.onSurfaceVariant)
                 }
-                // تفاوت اجباری iOS: بروزرسانی داخل اپ (فایل APK) در iOS وجود نداره، پس فقط تگ نسخه نمایش داده می‌شه
-                if let versionName = Self.versionName {
+                // بروزرسانی داخل اپ: اگه نسخه‌ی جدیدتری در فروشگاه‌ها منتشر شده باشه، به‌جای تگ نسخه، تگ
+                // «بروز رسانی موجود است» با بج قرمز نمایش داده می‌شه؛ با لمسش مودال بروزرسانی باز می‌شه
+                if updateViewModel.availableUpdate != nil {
+                    Spacer().frame(height: 10)
+                    Button(action: { updateViewModel.showDialog = true }) {
+                        HStack(spacing: 0) {
+                            RemixIcon(RemixIcons.DownloadCloud2Line, tint: colors.primary, size: 14)
+                            Spacer().frame(width: 6)
+                            Text("بروز رسانی موجود است")
+                                .shkFont(11, .bold, lineHeight: 16)
+                                .foregroundColor(colors.primary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(colors.primary.opacity(0.1)))
+                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(colors.primary.opacity(0.5), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    // بج دایره‌ای قرمز - گوشه‌ی بالا سمت راست تگ
+                    .overlay(alignment: .topLeading) {
+                        Circle().fill(colors.primary)
+                            .padding(1.5)
+                            .background(Circle().fill(colors.background))
+                            .frame(width: 10, height: 10)
+                            .offset(x: -4, y: -4)
+                    }
+                } else if let versionName = Self.versionName {
                     Spacer().frame(height: 8)
                     // نسخه‌ی اپ به‌صورت تگِ کادردار
-                    Text("نسخه \(versionName)")
-                        .shkFont(11, .medium, lineHeight: 16)
-                        .foregroundColor(colors.onSurfaceVariant)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 3)
-                        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(colors.surface))
-                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(colors.outline, lineWidth: 1))
+                    Button(action: { updateViewModel.openVersionInfo() }) {
+                        Text("نسخه \(versionName)")
+                            .shkFont(11, .medium, lineHeight: 16)
+                            .foregroundColor(colors.onSurfaceVariant)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 3)
+                            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(colors.surface))
+                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(colors.outline, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
+                // خودِ مودال بروزرسانی یک‌جا در StartupDialogsHost رندر می‌شه
             }
             .frame(maxWidth: .infinity)
             .padding(.bottom, 20)
