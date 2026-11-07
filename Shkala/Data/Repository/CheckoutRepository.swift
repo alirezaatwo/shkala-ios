@@ -176,7 +176,12 @@ struct CheckoutRepository {
             return .error("خطا در اتصال به اینترنت.")
         } catch {
             // پاسخ به سرور رسیده ولی قابل پردازش نبود (نه قطعی اینترنت) - پیام جدا تا کاربر به
-            // اشتباه سراغ اینترنتش نره
+            // اشتباه سراغ اینترنتش نره، و ثبت در گزارش خطا (با رضایت کاربر) برای پیدا کردن علت
+            ErrorReporter.report(
+                message: "checkout: \(String(describing: type(of: error))): \(error.localizedDescription)",
+                error: error,
+                screen: "checkout"
+            )
             return .error("دریافت اطلاعات با خطا مواجه شد؛ لطفاً دوباره تلاش کنید.")
         }
     }

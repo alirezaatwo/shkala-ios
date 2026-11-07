@@ -105,6 +105,10 @@ WAIT=10 shot 80-compare           -shkScreen route:compare
 WAIT=12 shot 81-in-carts          -shkScreen route:in-carts
 WAIT=8  shot 82-announcement      -shkScreen route:announcement
 WAIT=12 shot 83-webpage           -shkScreen route:guaranty
+# مرحله‌ی ۶: مودال بروزرسانی iOS (داده‌ی نمونه)
+WAIT=6  shot 84-update            -shkScreen route:update
+WAIT=6  shot 85-update-forced     -shkScreen route:update-forced
+WAIT=6  shot 86-update-dark       -shkScreen route:update -shkDark
 shot 21-maintenance     -shkScreen maintenance
 shot 22-maint-countdown -shkScreen maintenance-countdown
 shot 23-maint-dark      -shkScreen maintenance-countdown -shkDark
