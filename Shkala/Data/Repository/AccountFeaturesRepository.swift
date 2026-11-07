@@ -136,3 +136,51 @@ struct TicketRepository {
         }
     }
 }
+
+// معادل باقی TicketRepository.kt (سطوح اهمیت، ثبت، جزئیات، پاسخ و پیوست)
+extension TicketRepository {
+    func getPriorities() async -> ApiResult<[TicketPriorityDto]> {
+        do {
+            let r = try await ApiService.getTicketPriorities()
+            if r.isSuccessful, let body = r.body { return .success(body.priorities) }
+            return .error("دریافت سطوح اهمیت با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func createTicket(title: String, priority: String, content: String, attachment: Data?) async -> ApiResult<Int> {
+        do {
+            var parts: [MultipartPart] = [.text("title", title), .text("priority", priority), .text("content", content)]
+            if let attachment {
+                parts.append(MultipartPart(name: "attachment", data: attachment, fileName: "ticket_attachment_\(Int64(Date().timeIntervalSince1970 * 1000)).jpg", mimeType: "image/*"))
+            }
+            let r = try await ApiService.createTicket(parts: parts)
+            if r.isSuccessful, let body = r.body, body.status == "ok", let id = body.ticketId { return .success(id) }
+            return .error(r.body?.message ?? "ثبت تیکت با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func getTicketDetail(_ id: Int) async -> ApiResult<TicketDetailDto> {
+        do {
+            let r = try await ApiService.getTicketDetail(id)
+            if r.isSuccessful, let ticket = r.body?.ticket { return .success(ticket) }
+            return .error(r.body?.message ?? "دریافت جزئیات تیکت با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func answerTicket(_ id: Int, content: String) async -> ApiResult<String> {
+        do {
+            let r = try await ApiService.answerTicket(id, content: content)
+            if r.isSuccessful, let body = r.body, body.status == "ok" { return .success(body.message ?? "ارسال شد.") }
+            return .error(r.body?.message ?? "ارسال پاسخ با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func sendAttachment(_ id: Int, attachment: Data) async -> ApiResult<String> {
+        do {
+            let part = MultipartPart(name: "attachment", data: attachment, fileName: "ticket_reply_attachment_\(Int64(Date().timeIntervalSince1970 * 1000)).jpg", mimeType: "image/*")
+            let r = try await ApiService.sendTicketAttachment(id, parts: [part])
+            if r.isSuccessful, let body = r.body, body.status == "ok" { return .success(body.message ?? "ارسال شد.") }
+            return .error(r.body?.message ?? "ارسال پیوست با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+}

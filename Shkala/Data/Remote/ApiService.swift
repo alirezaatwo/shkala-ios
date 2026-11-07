@@ -354,6 +354,26 @@ enum ApiService {
         ], as: TicketsResponse.self)
     }
 
+    static func getTicketPriorities() async throws -> ApiResponse<TicketPrioritiesResponse> {
+        try await api.call(.get, "api/v2/tickets/priorities", as: TicketPrioritiesResponse.self)
+    }
+
+    static func createTicket(parts: [MultipartPart]) async throws -> ApiResponse<TicketStoreResponse> {
+        try await api.callMultipart(.post, "api/v2/tickets", parts: parts, as: TicketStoreResponse.self)
+    }
+
+    static func getTicketDetail(_ id: Int) async throws -> ApiResponse<TicketDetailResponse> {
+        try await api.call(.get, "api/v2/tickets/\(id)", as: TicketDetailResponse.self)
+    }
+
+    static func answerTicket(_ id: Int, content: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/tickets/\(id)/answer", form: ["content": content], as: SimpleStatusResponse.self)
+    }
+
+    static func sendTicketAttachment(_ id: Int, parts: [MultipartPart]) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.callMultipart(.post, "api/v2/tickets/\(id)/attachment", parts: parts, as: SimpleStatusResponse.self)
+    }
+
     static func getFavorites(page: Int = 1, search: String? = nil) async throws -> ApiResponse<FavoritesResponse> {
         try await api.call(.get, "api/v2/favorites", query: ["page": String(page), "search": search], as: FavoritesResponse.self)
     }

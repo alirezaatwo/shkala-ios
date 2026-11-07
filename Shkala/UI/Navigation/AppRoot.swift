@@ -48,6 +48,8 @@ enum AppRoute: Hashable {
     case transactionsList
     case prefactorsList
     case ticketsList
+    case createTicket
+    case ticketDetail(id: Int)
     case favoritesList
     case myCommentsList
     case recentlyViewed
@@ -100,6 +102,8 @@ enum AppRoute: Hashable {
         case .transactionsList: return "تراکنش‌های من"
         case .prefactorsList: return "پیش‌فاکتورها"
         case .ticketsList: return "تیکت‌های پشتیبانی"
+        case .createTicket: return "ثبت تیکت جدید"
+        case .ticketDetail: return "تیکت"
         case .favoritesList: return "علاقه‌مندی‌های من"
         case .myCommentsList: return "دیدگاه‌های من"
         case .recentlyViewed: return "بازدیدهای اخیر"
@@ -637,6 +641,21 @@ struct AppRoot: View {
             }
         case .editProfile:
             EditProfileScreen(onBack: { navigator.popBackStack() })
+        case .ticketsList:
+            TicketsListScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenTicket: { id in navigator.navigate(.ticketDetail(id: id)) },
+                onCreateTicket: { navigator.navigate(.createTicket) }
+            )
+        case .createTicket:
+            CreateTicketScreen(
+                onBack: { navigator.popBackStack() },
+                onCreated: { id in
+                    navigator.navigate(.ticketDetail(id: id), popUpTo: { $0 == .ticketsList }, inclusive: false)
+                }
+            )
+        case .ticketDetail(let id):
+            TicketDetailScreen(ticketId: id, onBack: { navigator.popBackStack() })
         case .transactionsList:
             TransactionsListScreen(onBack: { navigator.popBackStack() })
         default:
