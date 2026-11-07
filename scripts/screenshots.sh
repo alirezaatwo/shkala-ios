@@ -38,8 +38,8 @@ shot 07-intro-1         -shkScreen intro:0
 shot 08-intro-4         -shkScreen intro:3
 shot 09-intro-6-last    -shkScreen intro:5
 # صفحه‌ی اصلی و منو با داده‌ی زنده‌ی سایت (زمان بیشتر برای بارگذاری)
-WAIT=9 shot 10-home-light      -shkScreen main
 WAIT=9 shot 11-home-dark       -shkScreen main -shkDark
+WAIT=9 shot 10-home-light      -shkScreen main
 WAIT=9 shot 24-home-scroll-1   -shkScreen main -shkScrollY 650
 WAIT=9 shot 25-home-scroll-2   -shkScreen main -shkScrollY 1300
 WAIT=9 shot 26-home-scroll-3   -shkScreen main -shkScrollY 1950

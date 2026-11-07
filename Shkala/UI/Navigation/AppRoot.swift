@@ -134,6 +134,8 @@ struct AppRoot: View {
             VStack(spacing: 0) {
                 content
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // مثل Scaffold اندروید (insets بالا): محتوای اسکرول زیر نوار وضعیت نمی‌ره
+                    .clipped()
                 BottomNavBar(
                     currentTab: navigator.stack.isEmpty ? navigator.tab : nil,
                     // تعداد کالای سبد خرید از مرحله‌ی ۴ (سبد خرید) وصل می‌شه
