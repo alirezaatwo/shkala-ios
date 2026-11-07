@@ -60,6 +60,16 @@ shot 17-auth-code       -shkScreen auth:code
 shot 18-auth-code-err   -shkScreen auth:code-error
 shot 19-auth-success    -shkScreen auth:code-success
 shot 20-auth-dark       -shkScreen auth:code -shkDark
+# مرحله‌ی ۴: صفحه‌ی محصول (پربازدیدترین محصول موجود) و سبد خرید
+WAIT=12 shot 40-product-top       -shkScreen product
+WAIT=12 shot 41-product-scroll-1  -shkScreen product -shkScrollY 700
+WAIT=12 shot 42-product-scroll-2  -shkScreen product -shkScrollY 1400
+WAIT=12 shot 43-product-scroll-3  -shkScreen product -shkScrollY 2100
+WAIT=12 shot 44-product-scroll-4  -shkScreen product -shkScrollY 2800
+WAIT=12 shot 45-product-scroll-5  -shkScreen product -shkScrollY 3500
+WAIT=12 shot 46-product-bottom    -shkScreen product -shkScrollY 99999
+WAIT=12 shot 47-product-dark      -shkScreen product -shkDark
+WAIT=8  shot 48-cart-sheet        -shkScreen cart
 shot 21-maintenance     -shkScreen maintenance
 shot 22-maint-countdown -shkScreen maintenance-countdown
 shot 23-maint-dark      -shkScreen maintenance-countdown -shkDark

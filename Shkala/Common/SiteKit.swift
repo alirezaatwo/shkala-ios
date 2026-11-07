@@ -802,3 +802,19 @@ extension View {
         modifier(SiteDialogHost(isPresented: isPresented, dismissOnClickOutside: dismissOnClickOutside, dialog: dialog))
     }
 }
+
+/**
+ * مودال‌های صفحه‌ها (SiteDialog اندروید روی کل پنجره رسم می‌شه، حتی روی نوار پایین): صفحه‌ها مودالشون رو
+ * به این مرکز می‌دن و AppRoot یک‌بار بالای همه‌چیز رسمش می‌کنه.
+ */
+@MainActor
+final class ShkDialogCenter: ObservableObject {
+    static let shared = ShkDialogCenter()
+    @Published private(set) var dialog: AnyView? = nil
+
+    func show<V: View>(@ViewBuilder _ content: () -> V) {
+        dialog = AnyView(content())
+    }
+
+    func dismiss() { dialog = nil }
+}

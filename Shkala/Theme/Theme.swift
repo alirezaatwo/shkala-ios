@@ -46,6 +46,24 @@ extension View {
     func shkalaTheme(darkTheme: Bool) -> some View {
         modifier(ShkalaTheme(darkTheme: darkTheme))
     }
+
+    /// محتوای sheet در iOS پنجره‌ی جدا داره: تم و جهت راست‌به‌چپ اپ دوباره روش اعمال می‌شه
+    /// و پس‌زمینه‌ی شیت هم‌رنگ پس‌زمینه‌ی صفحه (containerColor = background اندروید)
+    func shkSheetEnvironment() -> some View {
+        modifier(ShkSheetEnvironment())
+    }
+}
+
+struct ShkSheetEnvironment: ViewModifier {
+    @Environment(\.shkIsDark) private var isDark
+
+    func body(content: Content) -> some View {
+        content
+            // توست اندروید روی همه‌چیز (حتی شیت) دیده می‌شه
+            .overlay(ShkToastHost())
+            .shkalaTheme(darkTheme: isDark)
+            .background((isDark ? ShkColorScheme.dark : ShkColorScheme.light).background.ignoresSafeArea())
+    }
 }
 
 /// پنجره‌ی اپ مثل اندروید (setDecorFitsSystemWindows=true) هیچ محتوایی را زیر نوار وضعیت

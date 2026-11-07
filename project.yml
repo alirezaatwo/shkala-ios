@@ -43,6 +43,8 @@ targets:
         CFBundleLocalizations: [fa]
         LSRequiresIPhoneOS: true
         ITSAppUsesNonExemptEncryption: false
+        # ذخیره‌ی عکس محصول در گالری (دکمه‌ی دانلودِ لایت‌باکس)
+        NSPhotoLibraryAddUsageDescription: برای ذخیره‌ی تصویر محصول در گالری گوشی
         UIAppFonts:
           - iranyekan_regular.ttf
           - iranyekan_bold.ttf

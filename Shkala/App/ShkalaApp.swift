@@ -82,6 +82,12 @@ struct RootView: View {
             AppRoot(isDarkTheme: mode.dark, initialDrawerOpen: true).systemBarsBackground()
         case .auth(let state):
             AuthScreen(onLoginSuccess: {}, viewModel: ScreenshotMode.authViewModel(state)).systemBarsBackground()
+        case .product(let slug):
+            AppRoot(isDarkTheme: mode.dark)
+                .systemBarsBackground()
+                .task { await ScreenshotMode.openProduct(slug) }
+        case .cart:
+            AppRoot(isDarkTheme: mode.dark, initialCartOpen: true).systemBarsBackground()
         case .maintenance(let countdown):
             MaintenanceScreen(
                 title: nil,
@@ -147,6 +153,9 @@ struct ScreenshotMode {
         case drawer
         case auth(String)
         case maintenance(Bool)
+        // مرحله‌ی ۴: صفحه‌ی محصول (اسلاگ خالی = پربازدیدترین محصول موجود) و شیت سبد خرید
+        case product(String)
+        case cart
     }
 
     static var isActive: Bool { current != nil }
@@ -189,6 +198,23 @@ struct ScreenshotMode {
         return vm
     }
 
+    /// فقط عکس‌برداری: باز کردن صفحه‌ی یک محصول؛ بدون اسلاگ، پربازدیدترین محصول موجود از سرور گرفته می‌شه
+    @MainActor
+    static func openProduct(_ slug: String) async {
+        var target = slug
+        if target.isEmpty {
+            var filter = ProductSortFilter()
+            filter.sort = .MOST_VIEWED
+            filter.onlyAvailable = true
+            if case .success(let page) = await CatalogRepository().getProducts(sortFilter: filter),
+               let first = page.items.first {
+                target = first.slug
+            }
+        }
+        guard !target.isEmpty else { return }
+        AppNavigator.shared.navigate(.productDetail(slug: target))
+    }
+
     let screen: Screen
     let dark: Bool
     /// «-shkScrollY <عدد>»: اسکرول صفحه‌ی اصلی به این موقعیت (pt) برای عکس از بخش‌های پایین
@@ -209,6 +235,8 @@ struct ScreenshotMode {
         case "drawer": screen = .drawer
         case "maintenance": screen = .maintenance(false)
         case "maintenance-countdown": screen = .maintenance(true)
+        case "product": screen = .product(parts.count > 1 ? parts[1...].joined(separator: ":") : "")
+        case "cart": screen = .cart
         default: screen = .main
         }
         var scrollY: CGFloat = 0

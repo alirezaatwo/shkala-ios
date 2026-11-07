@@ -206,6 +206,8 @@ struct ShkPager<Page: View>: View {
     var autoAdvanceSeconds: Double? = nil
     /// بعد از آخرین صفحه دوباره صفحه‌ی اول (فقط برای چرخش خودکار)
     var autoAdvanceWraps: Bool = false
+    /// false = کشیدن انگشت صفحه رو عوض نمی‌کنه (مثلاً وقتی عکس لایت‌باکس زوم شده)
+    var swipeEnabled: Bool = true
     @ViewBuilder let page: (Int) -> Page
 
     @State private var width: CGFloat = 0
@@ -260,6 +262,7 @@ struct ShkPager<Page: View>: View {
     private func dragGesture(step: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 12)
             .onChanged { value in
+                guard swipeEnabled else { return }
                 if axisLocked == nil {
                     axisLocked = abs(value.translation.width) > abs(value.translation.height)
                 }

@@ -134,6 +134,41 @@ final class ApiClient {
     }
 }
 
+/// یک بخش از بدنه‌ی multipart (معادل @Part رتروفیت)
+struct MultipartPart {
+    let name: String
+    let data: Data
+    var fileName: String? = nil
+    var mimeType: String = "text/plain; charset=utf-8"
+
+    static func text(_ name: String, _ value: String) -> MultipartPart {
+        MultipartPart(name: name, data: Data(value.utf8))
+    }
+}
+
+extension ApiClient {
+    /// درخواست multipart/form-data (معادل @Multipart رتروفیت)
+    func callMultipart<T: Decodable>(_ method: HttpMethod, _ path: String, parts: [MultipartPart], as type: T.Type) async throws -> ApiResponse<T> {
+        var request = makeRequest(method, path)
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        for part in parts {
+            body.append(Data("--\(boundary)\r\n".utf8))
+            var disposition = "Content-Disposition: form-data; name=\"\(part.name)\""
+            if let fileName = part.fileName { disposition += "; filename=\"\(fileName)\"" }
+            body.append(Data("\(disposition)\r\n".utf8))
+            body.append(Data("Content-Type: \(part.mimeType)\r\n\r\n".utf8))
+            body.append(part.data)
+            body.append(Data("\r\n".utf8))
+        }
+        body.append(Data("--\(boundary)--\r\n".utf8))
+        request.httpBody = body
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
+        return try await send(request, as: type)
+    }
+}
+
 /// بسته‌بندی Encodable برای ارسال بدنه‌ی دلخواه
 struct AnyEncodable: Encodable {
     private let encodeFunc: (Encoder) throws -> Void

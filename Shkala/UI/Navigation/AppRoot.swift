@@ -17,6 +17,14 @@ enum AppRoute: Hashable {
     case terms
     case magazine
     case faqList
+    // مرحله‌ی ۴: تسویه‌ی حساب و پیش‌فاکتور سبد خرید
+    case checkout
+    case cartPrefactor
+    // توضیحات کامل (یا تب محتوایی) و جدول کامل مشخصات محصول
+    case productDescription(title: String, html: String)
+    case fullSpecs(groups: [SpecificationGroupDto])
+    // صفحه‌ی مقایسه‌ی محصولات (مرحله‌ی ۵)
+    case compare
 
     /// اسلاگ‌های قراردادی فهرست‌های «مشاهده همه» صفحه‌ی اصلی (همون Routes.*_SLUG اندروید)
     static let DISCOUNT_PRODUCTS_SLUG = "__discount__"
@@ -27,6 +35,7 @@ enum AppRoute: Hashable {
     var placeholderTitle: String {
         switch self {
         case .productDetail: return "جزئیات محصول"
+        case .compare: return "مقایسه محصولات"
         case .categoryProducts(_, let title): return title
         case .searchResults(let query, _): return query
         case .brand: return "برند"
@@ -40,6 +49,10 @@ enum AppRoute: Hashable {
         case .terms: return "قوانین و شرایط"
         case .magazine: return "مجله"
         case .faqList: return "پرسش‌های متداول"
+        case .checkout: return "تسویه حساب"
+        case .cartPrefactor: return "پیش‌فاکتور"
+        case .productDescription(let title, _): return title
+        case .fullSpecs: return "مشخصات فنی محصول"
         }
     }
 }
@@ -114,10 +127,15 @@ struct AppRoot: View {
     /// فقط برای عکس‌برداری CI: نمونه‌ی ViewModel صفحه‌ی اصلی و باز بودن منو
     var homeViewModel: HomeViewModel? = nil
     var initialDrawerOpen: Bool = false
+    /// فقط برای عکس‌برداری CI: باز بودن شیت سبد خرید
+    var initialCartOpen: Bool = false
 
     @ObservedObject private var navigator = AppNavigator.shared
     @ObservedObject private var tokenManager = TokenManager.shared
     @ObservedObject private var goftinoVm = GoftinoViewModel.shared
+    @ObservedObject private var cartViewModel = CartViewModel.shared
+    @ObservedObject private var loginPrompt = LoginRequiredPrompt.shared
+    @ObservedObject private var dialogCenter = ShkDialogCenter.shared
     @Environment(\.shkColors) private var colors
 
     // فاز ۲۶: سایدبار اصلی اپ - از پشت منوی همبرگری کنار لوگوی هدر باز می‌شه
@@ -126,6 +144,8 @@ struct AppRoot: View {
     @State private var visitedTabs: Set<AppTab> = [.HOME]
     // سبد خرید (مرحله‌ی ۴)
     @State private var showCartSheet = false
+    // شیت انتخاب نوعِ محصولِ چندگزینه‌ای (ProductQuickAddSheet) از روی کارت محصول
+    @State private var quickAddProduct: ProductListItemDto? = nil
 
     private var isLoggedIn: Bool { tokenManager.token != nil }
 
@@ -138,8 +158,7 @@ struct AppRoot: View {
                     .clipped()
                 BottomNavBar(
                     currentTab: navigator.stack.isEmpty ? navigator.tab : nil,
-                    // تعداد کالای سبد خرید از مرحله‌ی ۴ (سبد خرید) وصل می‌شه
-                    cartItemCount: 0,
+                    cartItemCount: cartViewModel.uiState.itemCount,
                     isLoggedIn: isLoggedIn,
                     onTabClick: { t in
                         visitedTabs.insert(t)
@@ -165,10 +184,71 @@ struct AppRoot: View {
 
             ShkToastHost()
         }
+        // فاز ۱۴: سبد خرید تمام‌صفحه بالا میاد؛ پس‌زمینه‌ی شیت هم‌رنگ پس‌زمینه‌ی صفحه
         .sheet(isPresented: $showCartSheet) {
-            ComingSoonScreen(title: "سبد خرید", icon: RemixIcons.ShoppingBasketLine, onBack: { showCartSheet = false })
+            CartSheetContent(
+                onClose: { showCartSheet = false },
+                onContinueShopping: {
+                    showCartSheet = false
+                    navigator.selectTab(.HOME)
+                },
+                onCheckout: {
+                    showCartSheet = false
+                    navigator.navigate(.checkout)
+                },
+                onPrefactor: {
+                    showCartSheet = false
+                    navigator.navigate(.cartPrefactor)
+                }
+            )
+            .shkSheetEnvironment()
         }
-        .onAppear { if initialDrawerOpen { showAppDrawer = true } }
+        .sheet(item: $quickAddProduct) { product in
+            ProductQuickAddSheet(productSlug: product.slug, productTitle: product.title, onDismiss: { quickAddProduct = nil })
+                .shkSheetEnvironment()
+                .presentationDetents([.medium, .large])
+        }
+        // مودال «لطفا به حساب کاربری خود وارد شوید» (مثلاً افزودن به سبد خرید توسط مهمان)؛
+        // دکمه‌ی «ورود» همون ناوبریِ دکمه‌ی «حساب من / ورود» رو انجام می‌ده (صفحه‌ی ورود)
+        .siteDialog(isPresented: Binding(get: { loginPrompt.isVisible }, set: { if !$0 { loginPrompt.dismiss() } })) {
+            SiteDialogContent(
+                title: "ورود به حساب کاربری",
+                icon: RemixIcons.LoginBoxLine,
+                message: "لطفا به حساب کاربری خود وارد شوید",
+                confirmText: "ورود",
+                onConfirm: {
+                    loginPrompt.dismiss()
+                    showCartSheet = false
+                    visitedTabs.insert(.ACCOUNT)
+                    navigator.selectTab(.ACCOUNT)
+                },
+                dismissText: "انصراف",
+                onDismiss: { loginPrompt.dismiss() }
+            )
+        }
+        // مودال‌های صفحه‌ها (روی کل پنجره، مثل SiteDialog اندروید)
+        .siteDialog(isPresented: Binding(get: { dialogCenter.dialog != nil }, set: { if !$0 { dialogCenter.dismiss() } })) {
+            dialogCenter.dialog
+        }
+        .onAppear {
+            if initialDrawerOpen { showAppDrawer = true }
+            if initialCartOpen { showCartSheet = true }
+            installCartActions()
+            // سبد خرید همون لحظه‌ی بالا اومدن اپ (و بعد از ورود به حساب) از سرور گرفته می‌شه تا
+            // تعداد روی آیکن سبد درست باشه - نه فقط وقتی کاربر سبد رو باز می‌کنه
+            if isLoggedIn { cartViewModel.loadCart(silently: true) }
+        }
+        .onChange(of: isLoggedIn) { loggedIn in
+            if loggedIn { cartViewModel.loadCart(silently: true) } else { cartViewModel.clear() }
+        }
+    }
+
+    /// اتصال دکمه‌ی «افزودن به سبد» کارت‌های محصول به سبد خرید مشترک اپ
+    private func installCartActions() {
+        ProductCartActions.addToCart = { inventoryId, quantity, onResult in
+            CartViewModel.shared.addToCart(inventoryId: inventoryId, count: quantity, onResult: onResult)
+        }
+        ProductCartActions.openQuickAdd = { product in quickAddProduct = product }
     }
 
     @ViewBuilder
@@ -233,7 +313,7 @@ struct AppRoot: View {
                 // دکمه‌ی لینک استوری: همون مسیریابی لینک‌های داخلی/خارجی اپ
                 onOpenLink: { url in navigator.openAppLink(url) }
             ),
-            cartItemCount: 0,
+            cartItemCount: cartViewModel.uiState.itemCount,
             isDarkTheme: isDarkTheme,
             isLoggedIn: isLoggedIn,
             viewModel: homeViewModel
@@ -257,7 +337,26 @@ struct AppRoot: View {
 
     @ViewBuilder
     private func routeScreen(_ route: AppRoute) -> some View {
-        ComingSoonScreen(title: route.placeholderTitle, icon: RemixIcons.HammerLine, onBack: { navigator.popBackStack() })
+        switch route {
+        case .productDetail(let slug):
+            ProductDetailScreen(
+                slug: slug,
+                onBack: { navigator.popBackStack() },
+                onOpenDescription: { title, html in navigator.navigate(.productDescription(title: title, html: html)) },
+                onOpenFullSpecs: { groups in navigator.navigate(.fullSpecs(groups: groups)) },
+                onOpenRelatedProduct: { relatedSlug in navigator.navigate(.productDetail(slug: relatedSlug)) },
+                onOpenCompare: { navigator.navigate(.compare) },
+                onOpenBrand: { brandSlug in navigator.navigate(.brand(slug: brandSlug)) },
+                onOpenCategory: { categorySlug, title in navigator.navigate(.categoryProducts(slug: categorySlug, title: title)) }
+            )
+            .id(slug)
+        case .productDescription(let title, let html):
+            ProductDescriptionScreen(title: title, html: html, onBack: { navigator.popBackStack() })
+        case .fullSpecs(let groups):
+            FullSpecsScreen(groups: groups, onBack: { navigator.popBackStack() })
+        default:
+            ComingSoonScreen(title: route.placeholderTitle, icon: RemixIcons.HammerLine, onBack: { navigator.popBackStack() })
+        }
     }
 }
 

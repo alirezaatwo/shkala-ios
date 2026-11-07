@@ -201,13 +201,18 @@ struct ProductListItemDto: ShkDTO, Identifiable, Equatable {
     }
 
     init(from decoder: Decoder) throws {
+        try self.init(from: decoder, forceInventory: nil)
+    }
+
+    /// forceInventory: برای RelatedProductDto که پیش‌فرض inventory اش true هست
+    init(from decoder: Decoder, forceInventory: Bool?) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = c.lenientInt(.id) ?? 0
         title = c.lenientString(.title) ?? ""
         slug = c.lenientString(.slug) ?? ""
         images = c.lossyList(ProductImageDto.self, .images) ?? []
         commentsInfo = try? c.decodeIfPresent(CommentsInfoDto.self, forKey: .commentsInfo)
-        inventory = c.lenientBool(.inventory) ?? false
+        inventory = forceInventory ?? c.lenientBool(.inventory) ?? false
         bestNormalPrice = try? c.decodeIfPresent(BestNormalPriceDto.self, forKey: .bestNormalPrice)
         bestPrice = c.lenientDouble(.bestPrice)
         isVip = c.lenientBool(.isVip) ?? false
