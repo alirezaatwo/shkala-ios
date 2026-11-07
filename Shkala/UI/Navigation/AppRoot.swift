@@ -47,6 +47,8 @@ enum AppRoute: Hashable {
     case walletEditCard
     case transactionsList
     case prefactorsList
+    case prefactorDetail(uuid: String)
+    case prefactorAddresses(uuid: String)
     case ticketsList
     case createTicket
     case ticketDetail(id: Int)
@@ -101,6 +103,8 @@ enum AppRoute: Hashable {
         case .walletEditCard: return "ویرایش کارت بانکی"
         case .transactionsList: return "تراکنش‌های من"
         case .prefactorsList: return "پیش‌فاکتورها"
+        case .prefactorDetail: return "پرداخت پیش‌فاکتور"
+        case .prefactorAddresses: return "دریافت حضوری / ارسال به آدرس"
         case .ticketsList: return "تیکت‌های پشتیبانی"
         case .createTicket: return "ثبت تیکت جدید"
         case .ticketDetail: return "تیکت"
@@ -656,6 +660,30 @@ struct AppRoot: View {
             )
         case .ticketDetail(let id):
             TicketDetailScreen(ticketId: id, onBack: { navigator.popBackStack() })
+        case .prefactorsList:
+            PrefactorsListScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenPrefactor: { uuid in navigator.navigate(.prefactorDetail(uuid: uuid)) }
+            )
+        case .prefactorDetail(let uuid):
+            PrefactorDetailScreen(
+                uuid: uuid,
+                onBack: { navigator.popBackStack() },
+                onOpenGatewayWebView: { navigator.navigate(.paymentWebView) },
+                onPaidByWallet: { orderUuid in
+                    navigator.navigate(.orderResult(kind: .SUCCESS, uuid: orderUuid), popUpTo: { $0 == .prefactorsList }, inclusive: false)
+                },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) },
+                onOpenAddressPicker: { prefactorUuid in navigator.navigate(.prefactorAddresses(uuid: prefactorUuid)) }
+            )
+            .id(uuid)
+        case .prefactorAddresses(let prefactorUuid):
+            PrefactorAddressListScreen(
+                uuid: prefactorUuid,
+                onBack: { navigator.popBackStack() },
+                onAddAddress: { navigator.navigate(.addressForm(id: nil)) },
+                onEditAddress: { address in navigator.navigate(.addressForm(id: address.id)) }
+            )
         case .transactionsList:
             TransactionsListScreen(onBack: { navigator.popBackStack() })
         default:

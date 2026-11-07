@@ -125,6 +125,67 @@ struct PrefactorRepository {
     }
 }
 
+// معادل باقی PrefactorRepository.kt (جزئیات، آدرس، روش ارسال، درگاه‌ها و پرداخت)
+extension PrefactorRepository {
+    func getPrefactorDetail(_ uuid: String) async -> ApiResult<PrefactorDetailResponse> {
+        do {
+            let r = try await ApiService.getPrefactorDetail(uuid)
+            if r.isSuccessful, let body = r.body, body.status == "ok" { return .success(body) }
+            return .error(r.body?.message ?? "دریافت اطلاعات پیش‌فاکتور با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func selectAddress(_ uuid: String, addressId: Int) async -> ApiResult<String> {
+        do {
+            let r = try await ApiService.selectPrefactorAddress(uuid, addressId: addressId)
+            if r.isSuccessful, let body = r.body, body.status == "ok" { return .success(body.message ?? "ثبت شد.") }
+            return .error(r.body?.message ?? "ثبت آدرس با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    /** فاز ۳۱: انتخاب تحویل حضوری از یکی از شعبه‌ها برای همین پیش‌فاکتور */
+    func selectShopAddress(_ uuid: String, receptionCenterId: String) async -> ApiResult<String> {
+        do {
+            let r = try await ApiService.selectPrefactorShopAddress(uuid, receptionCenterId: receptionCenterId)
+            if r.isSuccessful, let body = r.body, body.status == "ok" { return .success(body.message ?? "ثبت شد.") }
+            return .error(r.body?.message ?? "ثبت تحویل حضوری با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func selectShippingMethod(_ uuid: String, type: String, consignmentUuid: String, sendMethodUuid: String) async -> ApiResult<String> {
+        do {
+            let r = try await ApiService.selectPrefactorShippingMethod(uuid, type: type, consignmentUuid: consignmentUuid, sendMethodUuid: sendMethodUuid)
+            if r.isSuccessful, let body = r.body, body.status == "ok" { return .success(body.message ?? "ثبت شد.") }
+            return .error(r.body?.message ?? "ثبت روش ارسال با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func getGateways(_ uuid: String) async -> ApiResult<[PaymentGatewayDto]> {
+        do {
+            let r = try await ApiService.getPrefactorGateways(uuid)
+            if r.isSuccessful, let body = r.body { return .success(body.gateways) }
+            return .error("دریافت درگاه‌های پرداخت با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func pay(_ uuid: String, paymentGateway: String, description: String? = nil) async -> ApiResult<PrefactorPayResponse> {
+        do {
+            let r = try await ApiService.payPrefactor(uuid, paymentGateway: paymentGateway, description: description)
+            if r.isSuccessful, let body = r.body, body.status == "ok" { return .success(body) }
+            return .error(r.body?.message ?? "پرداخت با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+
+    func payCardToCard(_ uuid: String, receipt: Data) async -> ApiResult<PrefactorPayResponse> {
+        do {
+            let part = MultipartPart(name: "receipt", data: receipt, fileName: "prefactor_receipt_\(Int64(Date().timeIntervalSince1970 * 1000)).jpg", mimeType: "image/*")
+            let r = try await ApiService.payPrefactorCardToCard(uuid, parts: [part])
+            if r.isSuccessful, let body = r.body, body.status == "ok" { return .success(body) }
+            return .error(r.body?.message ?? "ثبت رسید با خطا مواجه شد.")
+        } catch { return .error(NETWORK_ERROR) }
+    }
+}
+
 struct TicketRepository {
     func getTickets(search: String? = nil, waitingAdmin: Bool? = nil, waitingUser: Bool? = nil, closed: Bool? = nil) async -> ApiResult<[TicketDto]> {
         do {

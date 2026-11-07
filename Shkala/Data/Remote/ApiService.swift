@@ -348,6 +348,38 @@ enum ApiService {
         ], as: PrefactorsResponse.self)
     }
 
+    static func getPrefactorDetail(_ uuid: String) async throws -> ApiResponse<PrefactorDetailResponse> {
+        try await api.call(.get, "api/v2/prefactors/\(enc(uuid))", as: PrefactorDetailResponse.self)
+    }
+
+    static func selectPrefactorAddress(_ uuid: String, addressId: Int) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/prefactors/\(enc(uuid))/address", form: ["address_id": String(addressId)], as: SimpleStatusResponse.self)
+    }
+
+    // فاز ۳۱: انتخاب تحویل حضوری از شعبه برای پیش‌فاکتور - دقیقاً مثل
+    // selectShopAddress تسویه‌حساب عادی، فقط مسیرش مخصوص همین پیش‌فاکتوره
+    static func selectPrefactorShopAddress(_ uuid: String, receptionCenterId: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/prefactors/\(enc(uuid))/shop-address", form: ["reception_center_id": receptionCenterId], as: SimpleStatusResponse.self)
+    }
+
+    static func selectPrefactorShippingMethod(_ uuid: String, type: String, consignmentUuid: String, sendMethodUuid: String) async throws -> ApiResponse<SimpleStatusResponse> {
+        try await api.call(.post, "api/v2/prefactors/\(enc(uuid))/shipping-method", form: [
+            "type": type, "consignment_uuid": consignmentUuid, "send_method_uuid": sendMethodUuid,
+        ], as: SimpleStatusResponse.self)
+    }
+
+    static func getPrefactorGateways(_ uuid: String) async throws -> ApiResponse<PrefactorGatewaysResponse> {
+        try await api.call(.get, "api/v2/prefactors/\(enc(uuid))/gateways", as: PrefactorGatewaysResponse.self)
+    }
+
+    static func payPrefactor(_ uuid: String, paymentGateway: String, description: String? = nil) async throws -> ApiResponse<PrefactorPayResponse> {
+        try await api.call(.post, "api/v2/prefactors/\(enc(uuid))/pay", form: ["payment_gateway": paymentGateway, "description": description], as: PrefactorPayResponse.self)
+    }
+
+    static func payPrefactorCardToCard(_ uuid: String, parts: [MultipartPart]) async throws -> ApiResponse<PrefactorPayResponse> {
+        try await api.callMultipart(.post, "api/v2/prefactors/\(enc(uuid))/pay-card-to-card", parts: parts, as: PrefactorPayResponse.self)
+    }
+
     static func getTickets(page: Int = 1, search: String? = nil, waitingAdmin: Bool? = nil, waitingUser: Bool? = nil, closed: Bool? = nil) async throws -> ApiResponse<TicketsResponse> {
         try await api.call(.get, "api/v2/tickets", query: [
             "page": String(page), "search": search, "waiting_admin": qb(waitingAdmin), "waiting_user": qb(waitingUser), "closed": qb(closed),
