@@ -85,6 +85,8 @@ enum AppRoute: Hashable {
         case .ordersList: return "سفارش‌های من"
         case .orderDetail: return "جزئیات سفارش"
         case .wallet: return "کیف پول"
+        case .editProfile:
+            EditProfileScreen(onBack: { navigator.popBackStack() })
         case .transactionsList: return "تراکنش‌های من"
         case .prefactorsList: return "پیش‌فاکتورها"
         case .ticketsList: return "تیکت‌های پشتیبانی"
