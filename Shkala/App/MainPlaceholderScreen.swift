@@ -18,7 +18,7 @@ struct MainPlaceholderScreen: View {
     var body: some View {
         VStack(spacing: 16) {
             Spacer()
-            Text("فروشگاه شکالا")
+            Text("سیما حفاظ خزر")
                 .shkFont(.headlineMedium)
                 .foregroundColor(colors.onBackground)
             Text("اسکلت اپ iOS آماده است. صفحه‌ی اصلی در مراحل بعد عیناً مثل اپ اندروید ساخته می‌شود.")

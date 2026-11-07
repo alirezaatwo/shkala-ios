@@ -1,5 +1,6 @@
 # Shkala iOS - rules for Claude
 
+- USER RULE: the Persian word «شکالا» must NEVER appear anywhere in the app UI. The store name is «سیما حفاظ خزر».
 - Reply to the user in Persian. Code comments in Persian, matching the Android app's style.
 - USER RULE: the iOS app is an EXACT copy of the Android app (repo alirezaatwo/shkala-android, Kotlin/Compose).
   Port each screen line by line from its Kotlin file: same layout, sizes (dp -> pt, sp -> pt), colors, texts,
