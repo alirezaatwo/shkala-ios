@@ -1,4 +1,4 @@
-# اپ iOS فروشگاه شکالا
+# اپ iOS فروشگاه سیما حفاظ خزر
 
 نسخه‌ی iOS اپ فروشگاه [shkala.com](https://shkala.com) با SwiftUI.
 
