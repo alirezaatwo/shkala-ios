@@ -45,6 +45,11 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/sim \
             CODE_SIGNING_ALLOWED=NO build | tee build/sim-build.log | grep -E "error:|warning: |\*\* BUILD" || true
+          # اگه بیلد شکست بخوره، همین‌جا متوقف می‌شه (بدون رفتن سراغ عکس‌برداری) و همه‌ی خطاها چاپ می‌شن
+          if ! grep -q "BUILD SUCCEEDED" build/sim-build.log; then
+            grep -E "error:" build/sim-build.log | sort -u | head -150
+            exit 1
+          fi
           test -d build/sim/Build/Products/Debug-iphonesimulator/Shkala.app
 
       - name: Screenshots

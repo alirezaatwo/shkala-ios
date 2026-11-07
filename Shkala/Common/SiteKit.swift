@@ -802,3 +802,99 @@ extension View {
         modifier(SiteDialogHost(isPresented: isPresented, dismissOnClickOutside: dismissOnClickOutside, dialog: dialog))
     }
 }
+
+/**
+ * مودال‌های صفحه‌ها (SiteDialog اندروید روی کل پنجره رسم می‌شه، حتی روی نوار پایین): صفحه‌ها مودالشون رو
+ * به این مرکز می‌دن و AppRoot یک‌بار بالای همه‌چیز رسمش می‌کنه.
+ */
+@MainActor
+final class ShkDialogCenter: ObservableObject {
+    static let shared = ShkDialogCenter()
+    @Published private(set) var dialog: AnyView? = nil
+    /// معادل onDismissRequest اندروید: بسته شدن با لمس بیرون مودال
+    private var onDismissRequest: (() -> Void)? = nil
+
+    func show<V: View>(onDismissRequest: (() -> Void)? = nil, @ViewBuilder _ content: () -> V) {
+        self.onDismissRequest = onDismissRequest
+        dialog = AnyView(content())
+    }
+
+    func dismiss() {
+        dialog = nil
+        onDismissRequest = nil
+    }
+
+    /// بسته شدن با لمس بیرون: اول callback صفحه، بعد بستن
+    func dismissFromOutside() {
+        let callback = onDismissRequest
+        dismiss()
+        callback?()
+    }
+}
+
+// MARK: - فیلد جستجو
+
+/// فیلد جستجوی هم‌شکل صفحه‌ی اصلی (SiteSearchField اندروید): کادر گوشه‌گرد ۱۵، دکمه‌ی پاک کردن و
+/// دکمه‌ی ذره‌بین در کادر کوچک سمت چپ
+struct SiteSearchField: View {
+    @Binding var value: String
+    var placeholder: String = "جستجو..."
+    var onSearch: (() -> Void)? = nil
+    var loading: Bool = false
+
+    @Environment(\.shkColors) private var colors
+    @Environment(\.shkIsDark) private var isDark
+
+    var body: some View {
+        let fieldColor = isDark ? ShkColors.DarkSearchField : ShkColors.LightSearchField
+        let fieldTextColor = isDark ? Color.white : ShkColors.LightSearchFieldText
+        let chipColor = isDark ? ShkColors.DarkSearchChip : ShkColors.LightSearchChip
+        HStack(spacing: 0) {
+            ZStack(alignment: .leading) {
+                if value.isEmpty {
+                    Text(placeholder)
+                        .shkFont(14, .medium, lineHeight: 22)
+                        .foregroundColor(fieldTextColor.opacity(0.8))
+                        .lineLimit(1)
+                        .allowsHitTesting(false)
+                }
+                TextField("", text: $value)
+                    .font(ShkFont.yekan(14, .medium))
+                    .foregroundColor(fieldTextColor)
+                    .tint(colors.primary)
+                    .submitLabel(.search)
+                    .onSubmit { onSearch?() }
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 8)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            if !value.isEmpty {
+                Button { value = "" } label: {
+                    RemixIcon(RemixIcons.CloseLine, contentDescription: "پاک کردن", tint: fieldTextColor, size: 18)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(SitePressStyle())
+                .padding(.trailing, 6)
+            }
+            Button { onSearch?() } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous).fill(chipColor)
+                    if loading {
+                        MaterialSpinner(color: colors.primary, lineWidth: 2, size: 16)
+                    } else {
+                        RemixIcon(RemixIcons.Search2Line, contentDescription: "جستجو", tint: colors.onSurface, size: 18)
+                    }
+                }
+                .frame(width: 34, height: 34)
+            }
+            .buttonStyle(SitePressStyle())
+            .disabled(onSearch == nil)
+            .padding(.trailing, 4)
+        }
+        .frame(maxWidth: .infinity, minHeight: 42)
+        .background(RoundedRectangle(cornerRadius: 15, style: .continuous).fill(fieldColor))
+    }
+}

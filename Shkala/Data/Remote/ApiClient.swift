@@ -118,6 +118,24 @@ final class ApiClient {
         return ApiResponse(code: code, body: nil, errorBody: data)
     }
 
+    /// بدنه‌ی خام پاسخ (معادل Response<ResponseBody> رتروفیت) - مثلاً عکس رسید
+    func callRaw(_ method: HttpMethod, _ path: String) async throws -> ApiResponse<Data> {
+        let request = makeRequest(method, path, query: [:], queryList: [], jsonBody: nil, formBody: nil, headers: [:])
+        let (data, response) = try await session.data(for: request)
+        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        if (200..<300).contains(code) { return ApiResponse(code: code, body: data, errorBody: nil) }
+        return ApiResponse(code: code, body: nil, errorBody: data)
+    }
+
+    /// درخواستی که بدنه‌ی پاسخش مهم نیست (معادل Response<Unit> رتروفیت)
+    func callIgnoringBody(_ method: HttpMethod, _ path: String, form: [String: String?]? = nil) async throws -> ApiResponse<Bool> {
+        let request = makeRequest(method, path, query: [:], queryList: [], jsonBody: nil, formBody: form, headers: [:])
+        let (data, response) = try await session.data(for: request)
+        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        if (200..<300).contains(code) { return ApiResponse(code: code, body: true, errorBody: nil) }
+        return ApiResponse(code: code, body: nil, errorBody: data)
+    }
+
     func call<T: Decodable>(
         _ method: HttpMethod,
         _ path: String,
@@ -130,6 +148,41 @@ final class ApiClient {
     ) async throws -> ApiResponse<T> {
         let data = try body.map { try ShkJSON.encoder.encode(AnyEncodable($0)) }
         let request = makeRequest(method, path, query: query, queryList: queryList, jsonBody: data, formBody: form, headers: headers)
+        return try await send(request, as: type)
+    }
+}
+
+/// یک بخش از بدنه‌ی multipart (معادل @Part رتروفیت)
+struct MultipartPart {
+    let name: String
+    let data: Data
+    var fileName: String? = nil
+    var mimeType: String = "text/plain; charset=utf-8"
+
+    static func text(_ name: String, _ value: String) -> MultipartPart {
+        MultipartPart(name: name, data: Data(value.utf8))
+    }
+}
+
+extension ApiClient {
+    /// درخواست multipart/form-data (معادل @Multipart رتروفیت)
+    func callMultipart<T: Decodable>(_ method: HttpMethod, _ path: String, parts: [MultipartPart], as type: T.Type) async throws -> ApiResponse<T> {
+        var request = makeRequest(method, path)
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        for part in parts {
+            body.append(Data("--\(boundary)\r\n".utf8))
+            var disposition = "Content-Disposition: form-data; name=\"\(part.name)\""
+            if let fileName = part.fileName { disposition += "; filename=\"\(fileName)\"" }
+            body.append(Data("\(disposition)\r\n".utf8))
+            body.append(Data("Content-Type: \(part.mimeType)\r\n\r\n".utf8))
+            body.append(part.data)
+            body.append(Data("\r\n".utf8))
+        }
+        body.append(Data("--\(boundary)--\r\n".utf8))
+        request.httpBody = body
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
         return try await send(request, as: type)
     }
 }

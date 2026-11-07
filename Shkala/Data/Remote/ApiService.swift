@@ -114,6 +114,212 @@ enum ApiService {
         try await api.call(.post, "api/v2/stories/\(id)/like", as: StoryLikeResponse.self)
     }
 
+    // ---- صفحه‌ی محصول ----
+
+    private static func enc(_ v: String) -> String {
+        v.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))) ?? v
+    }
+
+    static func getProductDetail(_ slug: String) async throws -> ApiResponse<ProductDetailResponse> {
+        try await api.call(.get, "api/v2/products/\(enc(slug))", as: ProductDetailResponse.self)
+    }
+
+    static func getProductExtras(_ slug: String) async throws -> ApiResponse<ProductExtrasResponse> {
+        try await api.call(.get, "api/v2/products/\(enc(slug))/extras", as: ProductExtrasResponse.self)
+    }
+
+    static func getProductInventories(_ slug: String) async throws -> ApiResponse<ProductInventoriesResponse> {
+        try await api.call(.get, "api/v2/products/\(enc(slug))/inventories", as: ProductInventoriesResponse.self)
+    }
+
+    static func toggleFavorite(_ productId: Int) async throws -> ApiResponse<ToggleFavoriteResponse> {
+        try await api.call(.post, "api/v2/products/\(productId)/favorite", as: ToggleFavoriteResponse.self)
+    }
+
+    /// مرتب‌سازی دیدگاه‌ها مثل سایت: فقط یکی از این‌ها با مقدار ۱ فرستاده می‌شه (nil = ارسال نمی‌شه)
+    static func getProductComments(_ slug: String, page: Int, latest: Int? = nil, useful: Int? = nil, buyers: Int? = nil) async throws -> ApiResponse<ProductCommentsResponse> {
+        try await api.call(.get, "api/v2/products/\(enc(slug))/comments", query: [
+            "cpage": String(page), "clatest": latest.map(String.init), "useful": useful.map(String.init), "buyers": buyers.map(String.init),
+        ], as: ProductCommentsResponse.self)
+    }
+
+    static func submitProductComment(_ slug: String, parts: [MultipartPart]) async throws -> ApiResponse<SubmitResponse> {
+        try await api.callMultipart(.post, "api/v2/products/\(enc(slug))/comments", parts: parts, as: SubmitResponse.self)
+    }
+
+    static func voteProductComment(_ commentId: Int, type: String) async throws -> ApiResponse<CommentVoteResponse> {
+        try await api.call(.post, "api/v2/comments/\(commentId)/vote", form: ["type": type], as: CommentVoteResponse.self)
+    }
+
+    static func getProductQuestions(_ slug: String, page: Int, latest: Int? = nil, noAnswer: Int? = nil, withAnswer: Int? = nil) async throws -> ApiResponse<ProductQuestionsResponse> {
+        try await api.call(.get, "api/v2/products/\(enc(slug))/questions", query: [
+            "qpage": String(page), "qlatest": latest.map(String.init), "noanswer": noAnswer.map(String.init), "answer": withAnswer.map(String.init),
+        ], as: ProductQuestionsResponse.self)
+    }
+
+    static func submitProductQuestion(_ slug: String, question: String) async throws -> ApiResponse<SubmitResponse> {
+        try await api.call(.post, "api/v2/products/\(enc(slug))/questions", form: ["question": question], as: SubmitResponse.self)
+    }
+
+    static func submitQuestionAnswer(_ questionId: Int, answer: String) async throws -> ApiResponse<SubmitResponse> {
+        try await api.call(.post, "api/v2/questions/\(questionId)/answers", form: ["answer": answer], as: SubmitResponse.self)
+    }
+
+    static func toggleProductNotification(_ slug: String, type: String) async throws -> ApiResponse<NotifyToggleResponse> {
+        try await api.call(.post, "api/v2/products/\(enc(slug))/notify", form: ["type": type], as: NotifyToggleResponse.self)
+    }
+
+    static func getCompares() async throws -> ApiResponse<CompareListResponse> {
+        try await api.call(.get, "api/v2/compares", as: CompareListResponse.self)
+    }
+
+    static func addToCompare(_ slug: String, type: String? = nil) async throws -> ApiResponse<CompareActionResponse> {
+        try await api.call(.post, "api/v2/compares/\(enc(slug))", form: ["type": type], as: CompareActionResponse.self)
+    }
+
+    // ---- سبد خرید ----
+
+    static func getCart() async throws -> ApiResponse<CartResponse> {
+        try await api.call(.get, "api/v2/cart", as: CartResponse.self)
+    }
+
+    /// پیش‌فاکتور سبد خرید (آدرس امضاشده‌ی صفحه‌ی پیش‌فاکتور برای وب‌ویو)
+    static func getCartPrefactorLink() async throws -> ApiResponse<CartPrefactorLinkResponse> {
+        try await api.call(.get, "api/v2/cart/prefactor", as: CartPrefactorLinkResponse.self)
+    }
+
+    static func addToCart(inventoryId: Int, count: Int) async throws -> ApiResponse<AddToCartResponse> {
+        try await api.call(.post, "api/v2/cart/add", form: ["inventory_id": String(inventoryId), "count": String(count)], as: AddToCartResponse.self)
+    }
+
+    static func increaseCartItem(consignmentItemId: Int, inventoryId: Int) async throws -> ApiResponse<CartItemResponse> {
+        try await api.call(.post, "api/v2/cart/increase", form: ["consignment_item_id": String(consignmentItemId), "inventory_id": String(inventoryId)], as: CartItemResponse.self)
+    }
+
+    static func decreaseCartItem(consignmentItemId: Int, inventoryId: Int) async throws -> ApiResponse<CartItemResponse> {
+        try await api.call(.post, "api/v2/cart/decrease", form: ["consignment_item_id": String(consignmentItemId), "inventory_id": String(inventoryId)], as: CartItemResponse.self)
+    }
+
+    static func removeCartItem(consignmentItemId: Int) async throws -> ApiResponse<CartItemResponse> {
+        try await api.call(.post, "api/v2/cart/remove", form: ["consignment_item_id": String(consignmentItemId)], as: CartItemResponse.self)
+    }
+
+    // ---- آدرس‌ها ----
+
+    static func getAddresses() async throws -> ApiResponse<AddressesResponse> {
+        try await api.call(.get, "api/v2/addresses", as: AddressesResponse.self)
+    }
+
+    private static func addressForm(
+        _ firstName: String, _ lastName: String, _ state: String, _ city: String, _ phone: String,
+        _ postalCode: String, _ fullAddress: String, _ mapLat: Double?, _ mapLng: Double?
+    ) -> [String: String?] {
+        [
+            "first_name": firstName, "last_name": lastName, "state": state, "city": city, "phone": phone,
+            "postal_code": postalCode, "full_address": fullAddress,
+            "map[lat]": mapLat.map { String($0) }, "map[lng]": mapLng.map { String($0) },
+        ]
+    }
+
+    static func createAddress(
+        firstName: String, lastName: String, state: String, city: String, phone: String,
+        postalCode: String, fullAddress: String, mapLat: Double? = nil, mapLng: Double? = nil
+    ) async throws -> ApiResponse<AddressResponse> {
+        try await api.call(.post, "api/v2/addresses",
+                           form: addressForm(firstName, lastName, state, city, phone, postalCode, fullAddress, mapLat, mapLng),
+                           as: AddressResponse.self)
+    }
+
+    static func updateAddress(
+        id: Int, firstName: String, lastName: String, state: String, city: String, phone: String,
+        postalCode: String, fullAddress: String, mapLat: Double? = nil, mapLng: Double? = nil
+    ) async throws -> ApiResponse<AddressResponse> {
+        try await api.call(.put, "api/v2/addresses/\(id)",
+                           form: addressForm(firstName, lastName, state, city, phone, postalCode, fullAddress, mapLat, mapLng),
+                           as: AddressResponse.self)
+    }
+
+    static func selectAddress(id: Int) async throws -> ApiResponse<AddressResponse> {
+        try await api.call(.post, "api/v2/addresses/\(id)/select", as: AddressResponse.self)
+    }
+
+    static func deleteAddress(id: Int) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(.delete, "api/v2/addresses/\(id)")
+    }
+
+    // ---- روش ارسال ----
+
+    static func getShipping() async throws -> ApiResponse<ShippingResponse> {
+        try await api.call(.get, "api/v2/shipping", as: ShippingResponse.self)
+    }
+
+    static func selectShippingMethod(type: String, consignmentUuid: String, sendMethodUuid: String) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(.post, "api/v2/shipping/select-method", form: [
+            "type": type, "consignment_uuid": consignmentUuid, "send_method_uuid": sendMethodUuid,
+        ])
+    }
+
+    static func selectShopAddress(receptionCenterId: String) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(.post, "api/v2/shipping/select-shop-address", form: ["reception_center_id": receptionCenterId])
+    }
+
+    // فاز ۱۴: کد تخفیف تسویه‌حساب
+    static func applyDiscount(code: String) async throws -> ApiResponse<DiscountResponse> {
+        try await api.call(.post, "api/v2/shipping/discount", form: ["code": code], as: DiscountResponse.self)
+    }
+
+    static func removeDiscount() async throws -> ApiResponse<DiscountResponse> {
+        try await api.call(.delete, "api/v2/shipping/discount", as: DiscountResponse.self)
+    }
+
+    // ---- پرداخت ----
+
+    static func getPaymentGateways() async throws -> ApiResponse<PaymentGatewaysResponse> {
+        try await api.call(.get, "api/v2/payment-gateways", as: PaymentGatewaysResponse.self)
+    }
+
+    static func pay(paymentGateway: String, description: String? = nil, useWallet: Int? = nil) async throws -> ApiResponse<PayResponse> {
+        try await api.call(.post, "api/v2/checkout/pay", form: [
+            "payment_gateway": paymentGateway, "description": description, "use_wallet": useWallet.map(String.init),
+        ], as: PayResponse.self)
+    }
+
+    // فاز ۱۵: پرداخت ترکیبی کیف پول + کارت‌به‌کارت - اگه کل مبلغ با کیف پول پوشش داده بشه نیازی به رسید نیست
+    static func payCardToCard(receipt: MultipartPart?, useWallet: Bool) async throws -> ApiResponse<CardToCardResponse> {
+        var parts: [MultipartPart] = []
+        if let receipt { parts.append(receipt) }
+        if useWallet { parts.append(.text("use_wallet", "1")) }
+        return try await api.callMultipart(.post, "api/v2/checkout/pay/card-to-card", parts: parts, as: CardToCardResponse.self)
+    }
+
+    // ثبت سفارش و پرداخت با هماهنگی کارشناس فروشگاه (مکانیزم کارت‌به‌کارت با رسید خودکار)
+    static func payCoordinated(description: String? = nil) async throws -> ApiResponse<CardToCardResponse> {
+        try await api.call(.post, "api/v2/checkout/pay/coordinated", form: ["description": description], as: CardToCardResponse.self)
+    }
+
+    static func getOrderStatus(uuid: String) async throws -> ApiResponse<OrderStatusResponse> {
+        try await api.call(.get, "api/v2/orders/\(enc(uuid))", as: OrderStatusResponse.self)
+    }
+
+    // ---- سفارش‌های من ----
+
+    /// جستجو بر اساس شماره‌ی سفارش (روی rejected_orders هم اعمال می‌شه)
+    static func getMyOrders(page: Int = 1, search: String? = nil) async throws -> ApiResponse<OrdersListResponse> {
+        try await api.call(.get, "api/v2/my-orders", query: ["page": String(page), "search": search], as: OrdersListResponse.self)
+    }
+
+    static func getMyOrderDetail(id: Int) async throws -> ApiResponse<OrderDetailResponse> {
+        try await api.call(.get, "api/v2/my-orders/\(id)", as: OrderDetailResponse.self)
+    }
+
+    static func getMyOrderReceipt(id: Int) async throws -> ApiResponse<Data> {
+        try await api.callRaw(.get, "api/v2/my-orders/\(id)/receipt")
+    }
+
+    static func getInvoiceBridge(id: Int) async throws -> ApiResponse<InvoiceBridgeResponse> {
+        try await api.call(.get, "api/v2/my-orders/\(id)/invoice-bridge", as: InvoiceBridgeResponse.self)
+    }
+
     // ---- وضعیت اپ ----
 
     /// شناسه‌ی نصب و نسخه‌ی اپ برای آمار لایو «کاربران آنلاین» در پنل (null = هدر ارسال نمی‌شه)
