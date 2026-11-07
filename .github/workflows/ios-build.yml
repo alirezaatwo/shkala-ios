@@ -7,9 +7,13 @@ name: iOS build
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+# اجازه‌ی نوشتن برای قرار دادن عکس‌ها در شاخه‌ی ci-screenshots
+permissions:
+  contents: write
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -45,6 +49,30 @@ jobs:
 
       - name: Screenshots
         run: scripts/screenshots.sh build/sim/Build/Products/Debug-iphonesimulator/Shkala.app screenshots
+
+      - name: Publish screenshots to ci-screenshots branch
+        # عکس‌ها (کوچک‌شده) در شاخه‌ی ci-screenshots زیر پوشه‌ی هم‌نام شاخه/PR قرار می‌گیرند تا
+        # بدون دانلود Artifact در خود GitHub دیده شوند
+        run: |
+          NAME="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          NAME="${NAME//\//-}"
+          for f in screenshots/*.png; do sips -Z 1000 "$f" >/dev/null; done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/shots && mkdir -p /tmp/shots
+          if git fetch --depth 1 origin ci-screenshots 2>/dev/null; then
+            git worktree add /tmp/shots/wt FETCH_HEAD
+            (cd /tmp/shots/wt && git checkout -B ci-screenshots)
+          else
+            git worktree add --detach /tmp/shots/wt
+            (cd /tmp/shots/wt && git checkout --orphan ci-screenshots && git rm -rfq . )
+          fi
+          rm -rf "/tmp/shots/wt/$NAME" && mkdir -p "/tmp/shots/wt/$NAME"
+          cp screenshots/*.png "/tmp/shots/wt/$NAME/"
+          cd /tmp/shots/wt
+          git add -A
+          git commit -qm "screenshots: $NAME @ ${GITHUB_SHA::7}" || exit 0
+          git push -f origin ci-screenshots
 
       - name: Build unsigned IPA
         run: |
