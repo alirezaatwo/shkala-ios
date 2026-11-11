@@ -322,6 +322,21 @@ struct ScreenshotMode {
         AppNavigator.shared.navigate(.productDetail(slug: target))
     }
 
+    /**
+     * فقط عکس‌برداری CI («-shkSampleInstallments»): تا وقتی سرور کلید installment_gateways رو نفرسته
+     * (قبل از دیپلوی سایت)، کارت‌های قسطی با همین نمونه (همون شکل خروجی سرور) نمایش داده می‌شن.
+     * در اپ واقعی همیشه nil است.
+     */
+    static let sampleInstallmentGateways: [InstallmentGatewayDto]? = {
+        guard current != nil, ProcessInfo.processInfo.arguments.contains("-shkSampleInstallments") else { return nil }
+        let json = """
+        [{"id":"snapppay","name":"اسنپ‌پی","title":"هر قسط با اسنپ‌پی:","description":"4 قسط ماهانه، بدون سود، چک و ضامن.","icon":"/img/gateways/snapppay.png","installments":4,"max_amount":null},
+         {"id":"torobpay","name":"ترب‌پی","title":"هر قسط با ترب‌پی:","description":"4 قسط ماهانه، بدون سود، چک و ضامن.","icon":"/img/gateways/torobpay.png","installments":4,"max_amount":null},
+         {"id":"digipay","name":"دیجی‌پی","title":"هر قسط با دیجی‌پی:","description":"4 قسط ماهانه، بدون سود، چک و ضامن.","icon":"/img/gateways/digipay.png","installments":4,"max_amount":null}]
+        """
+        return try? JSONDecoder().decode([InstallmentGatewayDto].self, from: Data(json.utf8))
+    }()
+
     let screen: Screen
     let dark: Bool
     /// «-shkScrollY <عدد>»: اسکرول صفحه‌ی اصلی به این موقعیت (pt) برای عکس از بخش‌های پایین

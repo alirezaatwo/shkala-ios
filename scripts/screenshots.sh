@@ -85,6 +85,10 @@ WAIT=12 shot 44-product-scroll-4  -shkScreen product -shkScrollY 2800
 WAIT=12 shot 45-product-scroll-5  -shkScreen product -shkScrollY 3500
 WAIT=12 shot 46-product-bottom    -shkScreen product -shkScrollY 99999
 WAIT=12 shot 47-product-dark      -shkScreen product -shkDark
+# A14: کارت‌های قسطی (نمونه‌ی ثابت تا دیپلوی سایت)
+WAIT=12 shot 47a-installments-top    -shkScreen product -shkSampleInstallments
+WAIT=12 shot 47b-installments-scroll -shkScreen product -shkSampleInstallments -shkScrollY 450
+WAIT=12 shot 47c-installments-dark   -shkScreen product -shkSampleInstallments -shkScrollY 450 -shkDark
 WAIT=8  shot 48-cart-sheet        -shkScreen cart
 # صفحه‌های بعد از سبد (بدون ورود): نتیجه‌ی سفارش، فرم آدرس، نقشه، سفارش‌ها، تسویه‌حساب
 WAIT=8  shot 50-order-success     -shkScreen route:order-success

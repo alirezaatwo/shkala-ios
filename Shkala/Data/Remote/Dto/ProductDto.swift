@@ -65,6 +65,37 @@ struct ProductFeatureDto: Decodable, Equatable {
     }
 }
 
+/**
+ * A14: یک درگاه پرداخت قسطیِ فعال (اسنپ‌پی، ترب‌پی، دیجی‌پی) برای کارت «هر قسط با ...» زیر دکمه‌ی
+ * افزودن به سبد (product.installment_gateways - app/Services/Main/Products/InstallmentCards.php).
+ * name = نام کوتاه، title = برچسب کامل مثل «هر قسط با اسنپ‌پی:»، max_amount = سقف مبلغ درگاه (تومان).
+ */
+struct InstallmentGatewayDto: ShkDTO, Equatable {
+    let id: String?
+    let name: String?
+    let title: String?
+    let description: String?
+    let icon: String?
+    let installments: Int?
+    let maxAmount: Int64?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, title, description, icon, installments
+        case maxAmount = "max_amount"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.lenientString(.id)
+        name = c.lenientString(.name)
+        title = c.lenientString(.title)
+        description = c.lenientString(.description)
+        icon = c.lenientString(.icon)
+        installments = c.lenientInt(.installments)
+        maxAmount = c.lenientInt64(.maxAmount)
+    }
+}
+
 struct ProductDetailDto: ShkDTO, Equatable {
     let id: Int
     let title: String
@@ -98,6 +129,8 @@ struct ProductDetailDto: ShkDTO, Equatable {
     let favoritesCount: Int64?
     let cartCount: Int64?
     let productStatisticsStatus: String?
+    // A14: درگاه‌های قسطیِ فعال (کلید افزوده؛ اگه سرور نفرسته، کارت قسطی نمایش داده نمی‌شه)
+    let installmentGateways: [InstallmentGatewayDto]?
 
     enum CodingKeys: String, CodingKey {
         case id, title, slug, content, guide, images, inventory, brand, specifications, tabs, category, warnings, uuid
@@ -107,6 +140,7 @@ struct ProductDetailDto: ShkDTO, Equatable {
         case buyerImages = "get_buyer_images", outstandingFeatures = "outstanding_features"
         case viewCount = "view_count", favoritesCount = "favorites_count", cartCount = "cart_count"
         case productStatisticsStatus = "product_statistics_status"
+        case installmentGateways = "installment_gateways"
     }
 
     init(from decoder: Decoder) throws {
@@ -139,6 +173,7 @@ struct ProductDetailDto: ShkDTO, Equatable {
         favoritesCount = c.lenientInt64(.favoritesCount)
         cartCount = c.lenientInt64(.cartCount)
         productStatisticsStatus = c.lenientString(.productStatisticsStatus)
+        installmentGateways = c.lossyList(InstallmentGatewayDto.self, .installmentGateways)
     }
 
     var galleryImages: [ProductImageDto] {
