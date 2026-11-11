@@ -279,6 +279,21 @@ private struct ProductDetailContent: View {
         return nil
     }
 
+    // A14: قیمت نهاییِ واحد (عددی) - همون قیمتی که کادر قیمت نشون می‌ده - برای کارت‌های قسطی.
+    // با عوض شدن گزینه‌ها/فروشنده یا تعداد، کارت‌ها همون لحظه دوباره حساب می‌شن.
+    private var unitFinalPrice: Int64? {
+        if let v = matchedVariant { return v.finalPrice }
+        if storeCount > 1, let seller = selectedSeller, let price = seller.finalPrice { return price }
+        if let best = product.bestNormalPrice {
+            let raw = (best.discountPrice.flatMap { $0.isBlankShk ? nil : $0 } ?? best.price)
+            return raw.flatMap { Int64($0.replacingOccurrences(of: ",", with: "").replacingOccurrences(of: "٬", with: "").trimmingCharacters(in: .whitespaces)) }
+        }
+        return product.bestPrice.map { Int64($0) }
+    }
+    private var installmentCards: [InstallmentCardItem] {
+        product.inventory ? buildInstallmentCards(gateways: product.installmentGateways ?? ScreenshotMode.sampleInstallmentGateways, unitFinalPrice: unitFinalPrice, quantity: quantity) : []
+    }
+
     // آیا دکمه‌ی خرید داخل کادر قیمت فعاله؟
     private var canBuy: Bool { product.inventory && (hasRealVariants ? true : product.bestInventory?.id != nil) }
     private var optionsItemKey: String { showSellerSelector ? "sellers" : "variants" }
@@ -724,6 +739,13 @@ private struct ProductDetailContent: View {
                     }
                 }
                 .frame(width: 150)
+            }
+
+            // A14: کارت‌های «هر قسط با ...» درست زیر دکمه‌ی افزودن به سبد
+            let installments = installmentCards
+            if !installments.isEmpty {
+                ProductInstallmentCards(cards: installments)
+                    .padding(.top, 12)
             }
 
             // فاز PX: راهنمای انتخاب - وقتی محصول چندنوعیه و هنوز ترکیب معتبری انتخاب نشده
