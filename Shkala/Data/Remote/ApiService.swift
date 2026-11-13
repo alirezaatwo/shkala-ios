@@ -449,6 +449,11 @@ enum ApiService {
         try await api.call(.get, "api/v2/forms/\(enc(slug))", as: FormResponse.self)
     }
 
+    // امنیتی (اپ ۳.۲): عددهای کپچای فرم از سرور (جواب فقط در سرور می‌ماند)
+    static func getFormCaptcha() async throws -> ApiResponse<FormCaptchaResponse> {
+        try await api.call(.get, "api/v2/forms-captcha", as: FormCaptchaResponse.self)
+    }
+
     static func submitFormAnswer(_ slug: String, body: FormAnswerSubmitRequest) async throws -> ApiResponse<FormAnswerSubmitResponse> {
         try await api.call(.post, "api/v2/forms/\(enc(slug))/answer", body: body, as: FormAnswerSubmitResponse.self)
     }

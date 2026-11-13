@@ -787,6 +787,8 @@ private struct PopupForm: View {
     @State private var captchaFirst = Int.random(in: 1...9)
     @State private var captchaSecond = Int.random(in: 1...9)
     @State private var captchaAnswer = ""
+    @State private var captchaId: String? = nil
+    @State private var captchaExpiresAt: Date = .distantPast
     @State private var sending = false
     @State private var done: String? = nil
     @State private var error: String? = nil
@@ -833,6 +835,22 @@ private struct PopupForm: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .task(id: block.form?.slug) { await loadCaptcha() }
+    }
+
+    // امنیتی (اپ ۳.۲): عددهای کپچا از سرور (هر captcha_id یک بار)؛ سرور قدیمی = مثل قبل عدد خود اپ
+    private func loadCaptcha() async {
+        if let captcha = await ContentRepository().getFormCaptcha() {
+            captchaFirst = captcha.first ?? Int.random(in: 1...9)
+            captchaSecond = captcha.two ?? Int.random(in: 1...9)
+            captchaId = captcha.captchaId
+            captchaExpiresAt = Date().addingTimeInterval(TimeInterval(max((captcha.expiresIn ?? 600) - 30, 30)))
+        } else {
+            captchaFirst = Int.random(in: 1...9)
+            captchaSecond = Int.random(in: 1...9)
+            captchaId = nil
+            captchaExpiresAt = .distantPast
+        }
     }
 
     private func submit(fields: [AppPopupFormFieldDto]) {
@@ -852,6 +870,12 @@ private struct PopupForm: View {
             error = "لطفاً جواب سوال امنیتی را وارد کنید."
             return
         }
+        if captchaId != nil && Date() > captchaExpiresAt {
+            captchaAnswer = ""
+            Task { await loadCaptcha() }
+            error = "سوال امنیتی تازه شد؛ لطفاً دوباره جواب دهید."
+            return
+        }
         let list: [FormAnswerFieldDto] = fields.compactMap { field in
             guard let id = field.id else { return nil }
             return FormAnswerFieldDto(
@@ -864,7 +888,7 @@ private struct PopupForm: View {
         }
         Task {
             sending = true
-            let body = FormAnswerSubmitRequest(captchaArgs: CaptchaArgsDto(first: captchaFirst, two: captchaSecond), captcha: answer, answer: list)
+            let body = FormAnswerSubmitRequest(captchaId: captchaId, captchaArgs: CaptchaArgsDto(first: captchaFirst, two: captchaSecond), captcha: answer, answer: list)
             let repository = ContentRepository()
             switch await repository.submitFormAnswer(slug, body: body) {
             case .success(let message):
@@ -873,8 +897,7 @@ private struct PopupForm: View {
             case .error(let message):
                 error = message
                 captchaAnswer = ""
-                captchaFirst = Int.random(in: 1...9)
-                captchaSecond = Int.random(in: 1...9)
+                await loadCaptcha()
             }
             sending = false
         }

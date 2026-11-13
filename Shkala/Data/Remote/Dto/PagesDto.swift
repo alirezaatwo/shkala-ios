@@ -108,12 +108,40 @@ struct FormFieldDto: ShkDTO {
     }
 }
 
-/** بدنه‌ی درخواست ثبت پاسخ فرم - دقیقاً همون ساختاری که خودِ اسکریپت انتظار داره */
+/**
+ * بدنه‌ی درخواست ثبت پاسخ فرم.
+ * امنیتی (اپ ۳.۲): عددهای کپچا از سرور می‌آیند (GET api/v2/forms-captcha) و captcha_id همراه جواب
+ * فرستاده می‌شود؛ captcha_args فقط برای سرور قدیمی (وقتی forms-captcha جواب نداد) معنی دارد.
+ * captcha_id وقتی nil باشد اصلاً فرستاده نمی‌شود (مثل Gson اندروید).
+ */
 struct FormAnswerSubmitRequest: Encodable {
+    var captchaId: String? = nil
     let captchaArgs: CaptchaArgsDto
     let captcha: Int
     let answer: [FormAnswerFieldDto]
-    enum CodingKeys: String, CodingKey { case captchaArgs = "captcha_args", captcha, answer }
+    enum CodingKeys: String, CodingKey { case captchaId = "captcha_id", captchaArgs = "captcha_args", captcha, answer }
+}
+
+/** GET api/v2/forms-captcha - هر captcha_id فقط یک بار و تا expires_in ثانیه معتبر است */
+struct FormCaptchaResponse: ShkDTO {
+    let status: String?
+    let captchaId: String?
+    let first: Int?
+    let two: Int?
+    let expiresIn: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case status, first, two
+        case captchaId = "captcha_id", expiresIn = "expires_in"
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        status = c.lenientString(.status)
+        captchaId = c.lenientString(.captchaId)
+        first = c.lenientInt(.first)
+        two = c.lenientInt(.two)
+        expiresIn = c.lenientInt(.expiresIn)
+    }
 }
 
 struct CaptchaArgsDto: Encodable {

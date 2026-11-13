@@ -6,9 +6,10 @@ import SwiftUI
  * وب‌ویو. چون فیلدها کاملاً از پنل ادمین قابل تغییرن، این صفحه هیچ فیلدی رو
  * hardcode نمی‌کنه - هرچی از سرور بیاد رو بر اساس نوعش (type) رندر می‌کنه.
  *
- * کپچا: خودِ اسکریپت یه کپچای ساده‌ی ریاضی (جمع دو عدد) داره که کاملاً سمت کلاینت
- * تولید و چک می‌شه (captcha_args.first + captcha_args.two == captcha) - همینو این‌جا
- * هم پیاده کردیم.
+ * کپچا (امنیتی، اپ ۳.۲): جمع دو عدد، ولی عددها را سرور می‌سازد (GET api/v2/forms-captcha) و جواب
+ * فقط در سرور می‌ماند؛ هر captcha_id یک بار و ۱۰ دقیقه معتبر است، پس بعد از هر ارسال (موفق یا ناموفق)
+ * و قبل از ارسالِ کپچای کهنه، کپچای تازه گرفته می‌شود. اگر سرور هنوز این آدرس را ندارد، مثل قبل خود اپ
+ * دو عدد می‌سازد (captcha_args).
  */
 struct DynamicFormScreen: View {
     let slug: String
@@ -67,6 +68,23 @@ struct DynamicFormBody: View {
     @State private var captchaFirst = Int.random(in: 1..<10)
     @State private var captchaSecond = Int.random(in: 1..<10)
     @State private var captchaAnswer = ""
+    @State private var captchaId: String? = nil
+    @State private var captchaExpiresAt: Date = .distantPast
+
+    private func loadCaptcha() async {
+        if let captcha = await repository.getFormCaptcha() {
+            captchaFirst = captcha.first ?? Int.random(in: 1..<10)
+            captchaSecond = captcha.two ?? Int.random(in: 1..<10)
+            captchaId = captcha.captchaId
+            // ۳۰ ثانیه پیش از انقضای سرور
+            captchaExpiresAt = Date().addingTimeInterval(TimeInterval(max((captcha.expiresIn ?? 600) - 30, 30)))
+        } else {
+            captchaFirst = Int.random(in: 1..<10)
+            captchaSecond = Int.random(in: 1..<10)
+            captchaId = nil
+            captchaExpiresAt = .distantPast
+        }
+    }
 
     private func submit() {
         guard let currentForm = form, !isSubmitting else { return }
@@ -82,6 +100,13 @@ struct DynamicFormBody: View {
             ShkToast.shared.show("لطفاً جواب سوال امنیتی را وارد کنید.")
             return
         }
+        // کپچای سرورِ منقضی: عددهای تازه، کاربر دوباره جواب می‌دهد
+        if captchaId != nil && Date() > captchaExpiresAt {
+            captchaAnswer = ""
+            Task { await loadCaptcha() }
+            ShkToast.shared.show("سوال امنیتی تازه شد؛ لطفاً دوباره جواب دهید.")
+            return
+        }
 
         let answerList = currentForm.fields.map { field in
             let value = field.type == "checkbox" ? (checkboxValues[field.id] == true ? "1" : "") : (fieldValues[field.id] ?? "")
@@ -91,6 +116,7 @@ struct DynamicFormBody: View {
         Task {
             isSubmitting = true
             let body = FormAnswerSubmitRequest(
+                captchaId: captchaId,
                 captchaArgs: CaptchaArgsDto(first: captchaFirst, two: captchaSecond),
                 captcha: captchaInt,
                 answer: answerList
@@ -102,10 +128,12 @@ struct DynamicFormBody: View {
                 fieldValues = [:]
                 checkboxValues = [:]
                 captchaAnswer = ""
-                captchaFirst = Int.random(in: 1..<10)
-                captchaSecond = Int.random(in: 1..<10)
+                await loadCaptcha()
             case .error(let message):
                 ShkToast.shared.show(message, long: true)
+                // کد سرور یک بار مصرف می‌شود (درست یا غلط)
+                captchaAnswer = ""
+                await loadCaptcha()
             }
             isSubmitting = false
         }
@@ -176,6 +204,7 @@ struct DynamicFormBody: View {
         .task(id: slug) {
             guard form == nil else { return }
             isLoading = true
+            await loadCaptcha()
             switch await repository.getForm(slug) {
             case .success(let f):
                 form = f
