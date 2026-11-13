@@ -15,39 +15,53 @@ let SOLAR_ENERGY_TABS: [SolarTab] = [
 
 private let HOME_MODULE_ITEM_LIMIT = 15
 
-/// ماژول‌های تب‌دار جدید صفحه‌ی اصلی (مثل «انرژی خورشیدی»). اسلاگ هر تب = نزدیک‌ترین
-/// دسته‌بندی واقعیِ فروشگاه؛ فیلتر cat سرور زیردسته‌ها رو هم شامل می‌شه.
-enum HomeTabbedModule: CaseIterable {
-    case SURVEILLANCE, INSTALLATION
-
-    var title: String {
-        switch self {
-        case .SURVEILLANCE: return "سیستم نظارتی"
-        case .INSTALLATION: return "ملزومات نصب"
-        }
-    }
-
-    var tabs: [SolarTab] {
-        switch self {
-        case .SURVEILLANCE:
-            return [
-                SolarTab(label: "دوربین HDCVI", categorySlug: "دوربین-hdcvi"),                 // id 13
-                SolarTab(label: "دوربین IP", categorySlug: "دوربین-تحت-شبکه-ip"),              // id 15
-                SolarTab(label: "دوربین هوشمند", categorySlug: "دوربین-هوشمند-wi-fi"),         // id 16
-                SolarTab(label: "دستگاه XVR", categorySlug: "دستگاه-ضبط-تصویر-xvr"),           // id 32
-                SolarTab(label: "دستگاه NVR", categorySlug: "دستگاه-ضبط-تصویر-nvr"),           // id 33
-            ]
-        case .INSTALLATION:
-            return [
-                SolarTab(label: "کابل و لوله", categorySlug: "کابل-و-لوله"),                   // id 63
-                SolarTab(label: "رک و باکس", categorySlug: "باکس-و-رک-دیواری"),               // id 64
-                SolarTab(label: "اتصالات", categorySlug: "تجهیزات-و-اتصالات-نصب"),             // id 65
-                SolarTab(label: "آداپتور و پاور", categorySlug: "آداپتور-پاور-سوئیچ-و-باتری"), // id 66
-                SolarTab(label: "ذخیره ساز", categorySlug: "هارد-دیسک"),                       // id 67 «ذخیره‌سازها»
-            ]
-        }
-    }
+/**
+ * یک ماژول تب‌دار صفحه‌ی اصلی. از ۳.۳ این ماژول‌ها از قالب فعال سایت میان (ماژول‌های «تب دسته‌ها با
+ * فیلتر» - GET api/v2/home/category-tabs): عنوان، ترتیب تب‌ها (همون ترتیب کشیدن در صفحه‌ساز) و محصولات
+ * هر تب همه از سرور. فقط اگه درخواست خطا بده (سرور قدیمی بدون این مسیر یا قطعی اینترنت)، دو ماژول
+ * ثابتِ قبلی (BUILTIN_TABBED_MODULES) با لود تنبلِ هر تب نمایش داده می‌شن.
+ * fromServer=true یعنی محصولات همه‌ی تب‌ها از قبل در TabbedModuleState هستن و دوباره گرفته نمی‌شن.
+ */
+struct HomeTabbedModule: Equatable {
+    let key: String
+    let title: String
+    let tabs: [SolarTab]
+    let fromServer: Bool
 }
+
+/** عنوان جایگزین وقتی ماژول قالب سایت عنوانی نداره */
+private let TABBED_MODULE_FALLBACK_TITLE = "محصولات منتخب"
+
+/**
+ * ماژول‌های ثابت قبلی (فقط جایگزینِ خطای درخواست). اسلاگ هر تب = نزدیک‌ترین دسته‌بندی واقعیِ
+ * فروشگاه؛ فیلتر cat سرور زیردسته‌ها رو هم شامل می‌شه.
+ */
+let BUILTIN_TABBED_MODULES: [HomeTabbedModule] = [
+    HomeTabbedModule(
+        key: "builtin-surveillance",
+        title: "سیستم نظارتی",
+        tabs: [
+            SolarTab(label: "دوربین HDCVI", categorySlug: "دوربین-hdcvi"),                 // id 13
+            SolarTab(label: "دوربین IP", categorySlug: "دوربین-تحت-شبکه-ip"),              // id 15
+            SolarTab(label: "دوربین هوشمند", categorySlug: "دوربین-هوشمند-wi-fi"),         // id 16
+            SolarTab(label: "دستگاه XVR", categorySlug: "دستگاه-ضبط-تصویر-xvr"),           // id 32
+            SolarTab(label: "دستگاه NVR", categorySlug: "دستگاه-ضبط-تصویر-nvr"),           // id 33
+        ],
+        fromServer: false
+    ),
+    HomeTabbedModule(
+        key: "builtin-installation",
+        title: "ملزومات نصب",
+        tabs: [
+            SolarTab(label: "کابل و لوله", categorySlug: "کابل-و-لوله"),                   // id 63
+            SolarTab(label: "رک و باکس", categorySlug: "باکس-و-رک-دیواری"),               // id 64
+            SolarTab(label: "اتصالات", categorySlug: "تجهیزات-و-اتصالات-نصب"),             // id 65
+            SolarTab(label: "آداپتور و پاور", categorySlug: "آداپتور-پاور-سوئیچ-و-باتری"), // id 66
+            SolarTab(label: "ذخیره ساز", categorySlug: "هارد-دیسک"),                       // id 67 «ذخیره‌سازها»
+        ],
+        fromServer: false
+    ),
+]
 
 /// وضعیت یک ماژول تب‌دار: تب انتخاب‌شده + کش محصولات هر تب (تب‌ها فقط بار اولِ انتخاب لود می‌شن)
 struct TabbedModuleState: Equatable {
@@ -104,8 +118,9 @@ struct HomeUiState: Equatable {
     var homeBanners2: [HomeBannerDto] = []
     // ماژول ۶ - کاروسل دسته‌بندی‌های ۴تایی، زیر بنرهای ۴تایی
     var categoryProductSlides: [CategoryProductsSlide] = []
-    var surveillanceModule = TabbedModuleState()
-    var installationModule = TabbedModuleState()
+    // ماژول‌های تب‌دار (۳.۳: از قالب سایت؛ در خطای درخواست، ماژول‌های ثابت قبلی) + وضعیت هر کدوم با key
+    var tabbedModules: [HomeTabbedModule] = []
+    var tabbedModuleStates: [String: TabbedModuleState] = [:]
     // «نخری بردن!»
     var lowStockProducts: [ProductListItemDto] = []
     // «آخرین محصولاتی که مشاهده کردید» - ۱۵ بازدید اخیر (جدیدترین اول)
@@ -200,8 +215,7 @@ final class HomeViewModel: ObservableObject {
                 let current = uiState
                 var fresh = fetched
                 fresh.recentlyViewedProducts = current.recentlyViewedProducts
-                fresh.surveillanceModule = mergeTabbedModule(current.surveillanceModule, fetched.surveillanceModule)
-                fresh.installationModule = mergeTabbedModule(current.installationModule, fetched.installationModule)
+                fresh.tabbedModuleStates = mergeTabbedModules(current, fetched)
                 uiState = fresh
                 Self.primeCache(fresh)
             } else {
@@ -238,14 +252,14 @@ final class HomeViewModel: ObservableObject {
                 // تب انتخاب‌شده‌ی ماژول‌های تب‌دار حفظ می‌شه؛ کش بقیه‌ی تب‌ها دور ریخته می‌شه
                 var fresh = fetched
                 fresh.recentlyViewedProducts = current.recentlyViewedProducts
-                fresh.surveillanceModule.selectedIndex = current.surveillanceModule.selectedIndex
-                fresh.installationModule.selectedIndex = current.installationModule.selectedIndex
+                fresh.tabbedModuleStates = keepSelectedTabs(current, fetched)
                 fresh.isRefreshing = false
                 uiState = fresh
                 Self.primeCache(fresh)
-                for module in HomeTabbedModule.allCases {
+                // ماژول‌های ثابت (جایگزین): تب انتخاب‌شده‌ی غیر از اول دوباره گرفته می‌شه
+                for module in fresh.tabbedModules where !module.fromServer {
                     let selected = moduleState(module).selectedIndex
-                    if selected != 0 { selectModuleTab(module, selected) }
+                    if selected != 0 { selectModuleTab(module.key, selected) }
                 }
             }
         } else {
@@ -280,33 +294,67 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    private func mergeTabbedModule(_ old: TabbedModuleState, _ fresh: TabbedModuleState) -> TabbedModuleState {
-        var m = old
-        m.productsByTab.merge(fresh.productsByTab) { _, new in new }
-        m.loadingTabs.subtract(fresh.productsByTab.keys)
-        return m
+    /**
+     * تازه‌سازی بی‌صدا: برای هر ماژولی که هنوز هست (همون key)، تب انتخاب‌شده حفظ می‌شه. ماژول‌های
+     * سرور محصولات تازه‌ی خودشون رو دارن؛ ماژول‌های ثابت کش تب‌های قبلی رو هم نگه می‌دارن.
+     */
+    private func mergeTabbedModules(_ current: HomeUiState, _ fetched: HomeUiState) -> [String: TabbedModuleState] {
+        var result: [String: TabbedModuleState] = [:]
+        for module in fetched.tabbedModules {
+            let fresh = fetched.tabbedModuleStates[module.key] ?? TabbedModuleState()
+            guard let old = current.tabbedModuleStates[module.key] else {
+                result[module.key] = fresh
+                continue
+            }
+            let selected = module.tabs.indices.contains(old.selectedIndex) ? old.selectedIndex : 0
+            if module.fromServer {
+                var m = fresh
+                m.selectedIndex = selected
+                result[module.key] = m
+            } else {
+                var m = old
+                m.selectedIndex = selected
+                m.productsByTab.merge(fresh.productsByTab) { _, new in new }
+                m.loadingTabs.subtract(fresh.productsByTab.keys)
+                result[module.key] = m
+            }
+        }
+        return result
+    }
+
+    /** کشیدن به پایین: فقط تب انتخاب‌شده‌ی هر ماژولِ باقی‌مونده حفظ می‌شه (کش تب‌ها تازه گرفته می‌شه) */
+    private func keepSelectedTabs(_ current: HomeUiState, _ fetched: HomeUiState) -> [String: TabbedModuleState] {
+        var result: [String: TabbedModuleState] = [:]
+        for module in fetched.tabbedModules {
+            var fresh = fetched.tabbedModuleStates[module.key] ?? TabbedModuleState()
+            let old = current.tabbedModuleStates[module.key]?.selectedIndex
+            // ماژول ثابت: فقط تب اول همراه صفحه گرفته شده؛ تب انتخاب‌شده‌ی دیگه بعد از این دوباره لود می‌شه
+            fresh.selectedIndex = old.flatMap { module.tabs.indices.contains($0) ? $0 : nil } ?? 0
+            result[module.key] = fresh
+        }
+        return result
     }
 
     private func moduleState(_ module: HomeTabbedModule) -> TabbedModuleState {
-        switch module {
-        case .SURVEILLANCE: return uiState.surveillanceModule
-        case .INSTALLATION: return uiState.installationModule
-        }
+        uiState.tabbedModuleStates[module.key] ?? TabbedModuleState()
     }
 
     private func updateModuleState(_ module: HomeTabbedModule, _ transform: (inout TabbedModuleState) -> Void) {
-        switch module {
-        case .SURVEILLANCE: transform(&uiState.surveillanceModule)
-        case .INSTALLATION: transform(&uiState.installationModule)
-        }
+        var state = moduleState(module)
+        transform(&state)
+        uiState.tabbedModuleStates[module.key] = state
     }
 
-    /// انتخاب تب در ماژول‌های تب‌دار - محصولات هر تب فقط بار اول لود و بعد از کش نمایش داده می‌شه
-    func selectModuleTab(_ module: HomeTabbedModule, _ index: Int) {
+    /**
+     * انتخاب تب در ماژول‌های تب‌دار. ماژول‌های سرور محصولات همه‌ی تب‌ها رو از قبل دارن (فقط انتخاب عوض
+     * می‌شه)؛ ماژول‌های ثابت هر تب رو فقط بار اول لود و بعد از کش نمایش می‌دن.
+     */
+    func selectModuleTab(_ moduleKey: String, _ index: Int) {
+        guard let module = uiState.tabbedModules.first(where: { $0.key == moduleKey }) else { return }
         if !module.tabs.indices.contains(index) { return }
         let state = moduleState(module)
         updateModuleState(module) { $0.selectedIndex = index }
-        if state.productsByTab[index] != nil || state.loadingTabs.contains(index) { return }
+        if module.fromServer || state.productsByTab[index] != nil || state.loadingTabs.contains(index) { return }
 
         updateModuleState(module) { $0.loadingTabs.insert(index) }
         Task {
@@ -423,9 +471,10 @@ final class HomeViewModel: ObservableObject {
         async let latestR = repository.getProducts(page: 1, sortFilter: ProductSortFilter(sort: .LATEST, onlyAvailable: true))
         async let mostViewedR = repository.getProducts(page: 1, sortFilter: ProductSortFilter(sort: .MOST_VIEWED, onlyAvailable: true))
         async let solarR = repository.getProducts(page: 1, category: SOLAR_ENERGY_TABS[0].categorySlug, sortFilter: available)
-        // ماژول‌های تب‌دار جدید: فقط تب اول همراه صفحه لود می‌شه، بقیه‌ی تب‌ها موقع انتخاب
-        async let surveillanceR = repository.getProducts(page: 1, category: HomeTabbedModule.SURVEILLANCE.tabs[0].categorySlug, sortFilter: available)
-        async let installationR = repository.getProducts(page: 1, category: HomeTabbedModule.INSTALLATION.tabs[0].categorySlug, sortFilter: available)
+        // ۳.۳: ماژول‌های تب‌دار = ماژول‌های «تب دسته‌ها با فیلتر» قالب سایت (عنوان، ترتیب تب‌ها و
+        // محصولات از سرور). فهرست خالی = سایت چنین ماژولی نداره (چیزی نمایش داده نمی‌شه). فقط در خطای
+        // درخواست، دو ماژول ثابت قبلی نمایش داده می‌شن و تب اولشون همراه صفحه لود می‌شه.
+        async let tabbedModulesR = loadTabbedModules(repository, available)
         async let inCartsR = repository.getInCartsNow()
         async let homeUiR = repository.getHomeUi()
         async let storiesR = repository.getStories()
@@ -463,8 +512,7 @@ final class HomeViewModel: ObservableObject {
 
         let slider = await sliderR.successValue
         let inCarts = await inCartsR.successValue
-        let surveillance = await surveillanceR.successValue.map { Array($0.items.prefix(HOME_MODULE_ITEM_LIMIT)) }
-        let installation = await installationR.successValue.map { Array($0.items.prefix(HOME_MODULE_ITEM_LIMIT)) }
+        let tabbed = await tabbedModulesR
 
         var s = HomeUiState()
         s.isLoading = false
@@ -484,8 +532,8 @@ final class HomeViewModel: ObservableObject {
         s.solarSelectedTabIndex = 0
         s.solarProducts = items(await solarR)
         s.categoryProductSlides = slides
-        s.surveillanceModule = TabbedModuleState(productsByTab: surveillance.map { [0: $0] } ?? [:])
-        s.installationModule = TabbedModuleState(productsByTab: installation.map { [0: $0] } ?? [:])
+        s.tabbedModules = tabbed.map { $0.0 }
+        s.tabbedModuleStates = Dictionary(tabbed.map { ($0.0.key, $0.1) }, uniquingKeysWith: { first, _ in first })
         s.lowStockProducts = await lowStockR.successValue ?? []
         s.inCartsProducts = (inCarts?.products ?? []).distinctById()
         s.inCartsMinCount = inCarts?.minCount.flatMap { $0 > 0 ? $0 : nil } ?? IN_CARTS_DEFAULT_MIN_COUNT
@@ -495,5 +543,55 @@ final class HomeViewModel: ObservableObject {
         s.amazingOfferSiteTitle = amazingSite?.found == true ? amazingSite?.title : nil
         s.stories = await storiesR.successValue ?? []
         return s
+    }
+
+    /** ماژول‌های تب‌دار: از سرور، یا در خطای درخواست ماژول‌های ثابت با تب اولِ لودشده */
+    nonisolated private static func loadTabbedModules(_ repository: CatalogRepository, _ available: ProductSortFilter) async -> [(HomeTabbedModule, TabbedModuleState)] {
+        switch await repository.getHomeCategoryTabs() {
+        case .success(let modules):
+            return serverTabbedModules(modules)
+        case .error:
+            return await withTaskGroup(of: (Int, [ProductListItemDto]?).self) { group in
+                for (i, module) in BUILTIN_TABBED_MODULES.enumerated() {
+                    group.addTask {
+                        let r = await repository.getProducts(page: 1, category: module.tabs[0].categorySlug, sortFilter: available)
+                        return (i, r.successValue.map { Array($0.items.prefix(HOME_MODULE_ITEM_LIMIT)) })
+                    }
+                }
+                var firstTabs = [Int: [ProductListItemDto]?]()
+                for await (i, items) in group { firstTabs.updateValue(items, forKey: i) }
+                return BUILTIN_TABBED_MODULES.enumerated().map { i, module in
+                    let items = firstTabs[i] ?? nil
+                    return (module, TabbedModuleState(productsByTab: items.map { [0: $0] } ?? [:]))
+                }
+            }
+        }
+    }
+
+    /**
+     * ماژول‌های سرور -> مدل اپ. تب بدون عنوان یا اسلاگ کنار گذاشته می‌شه و ماژول بدون تب نمایش داده
+     * نمی‌شه. key = شناسه‌ی ماژول در قالب (یا جایگاهش) تا تب انتخاب‌شده با تازه‌سازی حفظ بشه.
+     */
+    nonisolated private static func serverTabbedModules(_ modules: [HomeCategoryTabsModuleDto]) -> [(HomeTabbedModule, TabbedModuleState)] {
+        var seen = Set<String>()
+        var result: [(HomeTabbedModule, TabbedModuleState)] = []
+        for (position, dto) in modules.enumerated() {
+            let tabs = (dto.tabs ?? []).filter { !($0.title?.isBlankShk ?? true) && !($0.slug?.isBlankShk ?? true) }
+            if tabs.isEmpty { continue }
+            let id = dto.id.flatMap { $0.isBlankShk ? nil : $0 } ?? String(position)
+            let title = dto.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let module = HomeTabbedModule(
+                key: "server-" + id,
+                title: (title?.isEmpty ?? true) ? TABBED_MODULE_FALLBACK_TITLE : title!,
+                tabs: tabs.map { SolarTab(label: $0.title!.trimmingCharacters(in: .whitespacesAndNewlines), categorySlug: $0.slug!.trimmingCharacters(in: .whitespacesAndNewlines)) },
+                fromServer: true
+            )
+            var productsByTab: [Int: [ProductListItemDto]] = [:]
+            for (index, tab) in tabs.enumerated() { productsByTab[index] = (tab.products ?? []).distinctById() }
+            if seen.insert(module.key).inserted {
+                result.append((module, TabbedModuleState(productsByTab: productsByTab)))
+            }
+        }
+        return result
     }
 }
