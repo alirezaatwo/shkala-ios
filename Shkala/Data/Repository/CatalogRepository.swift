@@ -225,6 +225,22 @@ final class CatalogRepository {
     }
 
     // پیشنهاد شگفت‌انگیز (همون ماژول قالب سایت)؛ خطا = سرور قدیمی‌تر از ۱.۷.۹ یا قطعی اینترنت
+    /**
+     * ۳.۳: ماژول‌های تب‌دار صفحه‌ی اصلی از قالب سایت. success با فهرست خالی = سایت چنین ماژولی نداره؛
+     * error فقط برای خطای درخواست (سرور قدیمی بدون این مسیر = 404، یا قطعی اینترنت).
+     */
+    func getHomeCategoryTabs() async -> ApiResult<[HomeCategoryTabsModuleDto]> {
+        do {
+            let response = try await ApiService.getHomeCategoryTabs()
+            if response.isSuccessful, let body = response.body, let modules = body.modules {
+                return .success(modules)
+            }
+            return .error("دریافت ماژول‌های تب‌دار با خطا مواجه شد.")
+        } catch {
+            return .error(Self.NETWORK_ERROR)
+        }
+    }
+
     func getHomeAmazingOffer() async -> ApiResult<AmazingOfferResponse> {
         do {
             let response = try await ApiService.getHomeAmazingOffer()
