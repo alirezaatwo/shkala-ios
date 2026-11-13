@@ -137,6 +137,20 @@ struct ContentRepository {
         }
     }
 
+    /** کپچای تازه‌ی فرم از سرور؛ nil = سرور قدیمی / خطا (آن‌وقت اپ مثل قبل خودش عدد می‌سازد) */
+    func getFormCaptcha() async -> FormCaptchaResponse? {
+        do {
+            let response = try await ApiService.getFormCaptcha()
+            if response.isSuccessful, let body = response.body, body.status == "ok",
+               let id = body.captchaId, !id.isBlankShk, body.first != nil, body.two != nil {
+                return body
+            }
+            return nil
+        } catch {
+            return nil
+        }
+    }
+
     func submitFormAnswer(_ slug: String, body: FormAnswerSubmitRequest) async -> ApiResult<String> {
         do {
             let response = try await ApiService.submitFormAnswer(slug, body: body)

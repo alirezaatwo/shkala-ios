@@ -6,10 +6,10 @@
   Port each screen line by line from its Kotlin file: same layout, sizes (dp -> pt, sp -> pt), colors, texts,
   icons (RemixIcons names are identical), timings and behavior. Only OS-forced differences are allowed; list them.
 - USER RULE (2026-11-07): EVERY change/update made to the Android app from now on must also be applied to iOS;
-  iOS must never lack anything Android has. Always port against the latest shkala-android main (synced: 3.1 / code 22).
+  iOS must never lack anything Android has. Always port against the latest shkala-android main (synced: 3.2 / code 23).
   When an Android PR merges, port it to iOS in a matching PR.
 - USER RULE (2026-11-07): the iOS version always equals the Android version: project.yml MARKETING_VERSION = Android
-  versionName, CURRENT_PROJECT_VERSION = Android versionCode (now 3.1 / 22). Bump both in every port PR.
+  versionName, CURRENT_PROJECT_VERSION = Android versionCode (now 3.2 / 23). Bump both in every port PR.
 - Names mirror Android: Color.kt -> ShkColors, MaterialTheme.colorScheme -> @Environment(\.shkColors),
   isAppInDarkTheme() -> @Environment(\.shkIsDark), RemixIcon(...) -> RemixIcon(...), Typography -> ShkTextStyle / .shkFont().
 - Whole app is RTL (ShkalaTheme sets layoutDirection). Canvas/pager code that must not mirror forces .leftToRight locally.
