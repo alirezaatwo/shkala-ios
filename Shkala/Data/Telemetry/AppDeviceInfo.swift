@@ -15,6 +15,16 @@ enum AppDeviceInfo {
     /// installer اپ iOS (سرور: منبع «آیفون (iOS)»)
     nonisolated static let INSTALLER = "ios"
 
+    /// معادل AppDeviceInfo.isEmulator() اندروید: اجرای اپ روی شبیه‌ساز (Xcode یا CI گیت‌هاب برای عکس صفحه‌ها) -
+    /// در این حالت heartbeat فرستاده نمی‌شه تا در آمار نصب سایت ثبت نشه (سرور هم مدل arm64/x86_64 رو رد می‌کنه).
+    nonisolated static var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }
+
     /// sha256 (hex) از identifierForVendor - بین اجراهای اپ ثابته
     static func deviceKey() -> String? {
         guard let id = UIDevice.current.identifierForVendor?.uuidString, !id.isEmpty else { return nil }

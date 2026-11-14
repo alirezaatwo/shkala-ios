@@ -24,6 +24,8 @@ enum AppTelemetry {
     }
 
     private static func sendHeartbeat() async {
+        // شبیه‌ساز در آمار نصب سایت ثبت نمی‌شه
+        if AppDeviceInfo.isSimulator { return }
         // UIDevice فقط روی رشته‌ی اصلی
         let body = await MainActor.run {
             AppHeartbeatRequest(
