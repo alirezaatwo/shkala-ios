@@ -74,8 +74,14 @@ struct GoftinoChatOverlay: View {
         }
         // هر بار کاربر یه محصول/دسته‌بندی جدید رو مشاهده کرد، بدون reload صفحه‌ی گفتینو
         // (که گفتگو رو پاک می‌کرد)، همون لحظه با جاوااسکریپت به گفتینو خبر می‌دیم "الان کاربر این‌جاست"
-        .onChange(of: currentPage.currentPageUrl) { _ in pushCurrentPage() }
-        .onChange(of: currentPage.currentPageLabel) { _ in pushCurrentPage() }
+        .onChange(of: currentPage.currentPageUrl) { url in
+            OnlineScreen.pageUrl = url
+            pushCurrentPage()
+        }
+        .onChange(of: currentPage.currentPageLabel) { label in
+            OnlineScreen.pageLabel = label
+            pushCurrentPage()
+        }
         .onChange(of: goftinoVm.isWebViewReady) { _ in pushCurrentPage() }
     }
 
@@ -112,7 +118,8 @@ private struct GoftinoWebView: UIViewRepresentable {
         window.AndroidBridge = {
             onWidgetReady: function () { window.webkit.messageHandlers.shkBridge.postMessage('ready'); },
             onWidgetClosed: function () { window.webkit.messageHandlers.shkBridge.postMessage('closed'); },
-            onNewMessage: function () { window.webkit.messageHandlers.shkBridge.postMessage('message'); }
+            onNewMessage: function () { window.webkit.messageHandlers.shkBridge.postMessage('message'); },
+            onGoftinoUser: function (id) { window.webkit.messageHandlers.shkBridge.postMessage({ goftinoUser: String(id || '') }); }
         };
         """
         config.userContentController.addUserScript(WKUserScript(source: bridgeScript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -143,6 +150,12 @@ private struct GoftinoWebView: UIViewRepresentable {
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             let vm = GoftinoViewModel.shared
+            // شناسه‌ی کاربر در گفتینو (برای شروع چت با همین کاربر از پنل مدیر)
+            if let dict = message.body as? [String: Any], let id = dict["goftinoUser"] as? String {
+                let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+                OnlineScreen.goftinoUserId = trimmed.isEmpty ? nil : trimmed
+                return
+            }
             DispatchQueue.main.async {
                 switch message.body as? String {
                 case "ready": vm.isWebViewReady = true
@@ -184,6 +197,10 @@ private func buildGoftinoHtmlPersistent(_ platformLabel: String) -> String {
                     forceUpdate: true
                 });
                 if (window.AndroidBridge) { window.AndroidBridge.onWidgetReady(); }
+                try {
+                    var gid = Goftino.getUserId ? Goftino.getUserId() : '';
+                    if (window.AndroidBridge && gid) { window.AndroidBridge.onGoftinoUser(String(gid)); }
+                } catch (e) {}
             });
 
             window.addEventListener('goftino_closeWidget', function () {

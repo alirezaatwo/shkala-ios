@@ -369,6 +369,10 @@ struct AppRoot: View {
         }
         // تب انتخاب‌شده از هر جای اپ (مثلاً منوی «مجله» یا لینک) هم زنده نگه داشته می‌شه
         .onChange(of: navigator.tab) { t in visitedTabs.insert(t) }
+        // صفحه‌ی فعلی برای «کاربران آنلاین» پنل سایت (معادل OnlineScreen.updateRoute اندروید)
+        .onAppear { OnlineScreen.updateRoute(tab: navigator.tab, current: navigator.currentRoute) }
+        .onChange(of: navigator.tab) { t in OnlineScreen.updateRoute(tab: t, current: navigator.currentRoute) }
+        .onChange(of: navigator.stack) { s in OnlineScreen.updateRoute(tab: navigator.tab, current: s.last) }
         .onChange(of: navigator.tab == .CATEGORIES && navigator.stack.isEmpty) { visible in
             guard visible else { return }
             // فاز ۳۲/۳۴: تب درخواستیِ «مجله» اولویت داره و بلافاصله پاک می‌شه؛ بعد آخرین تبی که کاربر داشت
