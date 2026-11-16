@@ -58,8 +58,9 @@ extension AppNavigator {
             // لینک همکاری در فروش (shkala.com/p/{uuid}?u=شناسه‌ی معرف): فقط وقتی خودِ لینک با اپ باز شده (Universal Link)
             // معرف ثبت می‌شه؛ لینک «باز کردن در اپ» سایت (shkala://) اصلاً به این‌جا نمی‌رسه. بعد صفحه‌ی محصول باز می‌شه
             let productUuid = segments[1]
-            let affiliateId = components?.queryItems?.first(where: { $0.name == "u" })?.value?
-                .trimmingCharacters(in: .whitespaces).flatMap { Int64($0) }.flatMap { $0 > 0 ? $0 : nil }
+            let rawAffiliate = components?.queryItems?.first(where: { $0.name == "u" })?.value?
+                .trimmingCharacters(in: .whitespaces) ?? ""
+            let affiliateId: Int64? = Int64(rawAffiliate).flatMap { $0 > 0 ? $0 : nil }
             let fallbackUrl = uri.absoluteString
             Task { @MainActor in
                 let response = try? await ApiService.affiliateReferral(productUuid: productUuid, affiliateId: affiliateId)
