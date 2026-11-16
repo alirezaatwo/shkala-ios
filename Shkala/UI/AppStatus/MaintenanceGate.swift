@@ -75,7 +75,13 @@ enum MaintenanceStatusCache {
 func fetchMaintenanceStatus() async -> MaintenanceInfo? {
     // شناسه‌ی نصب + نسخه: سرور با همین پرسش‌های دوره‌ای، کاربران آنلاین اپ رو در پنل نشون می‌ده
     let installId = AppMetaPreferenceManager.getOrCreateInstallId()
-    guard let response = try? await ApiService.getAppStatus(installId: installId, appVersion: currentAppVersionName()) else {
+    guard let response = try? await ApiService.getAppStatus(
+        installId: installId,
+        appVersion: currentAppVersionName(),
+        screen: OnlineScreen.screenHeader(),
+        screenTitle: OnlineScreen.titleHeader(),
+        goftinoUserId: OnlineScreen.goftinoHeader()
+    ) else {
         return nil
     }
     if response.isSuccessful, let body = response.body {

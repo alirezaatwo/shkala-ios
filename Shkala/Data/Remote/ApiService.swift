@@ -571,10 +571,17 @@ enum ApiService {
     // ---- وضعیت اپ ----
 
     /// شناسه‌ی نصب و نسخه‌ی اپ برای آمار لایو «کاربران آنلاین» در پنل (null = هدر ارسال نمی‌شه)
-    static func getAppStatus(installId: String?, appVersion: String?) async throws -> ApiResponse<AppStatusResponse> {
+    /// + صفحه‌ی فعلی اپ و شناسه‌ی گفتینو برای «کاربران آنلاین» و چت از پنل (null = هدر ارسال نمی‌شه)
+    static func getAppStatus(
+        installId: String?, appVersion: String?,
+        screen: String? = nil, screenTitle: String? = nil, goftinoUserId: String? = nil
+    ) async throws -> ApiResponse<AppStatusResponse> {
         try await api.call(
             .get, "api/v2/app/status",
-            headers: ["X-Shk-Install": installId, "X-Shk-Version": appVersion],
+            headers: [
+                "X-Shk-Install": installId, "X-Shk-Version": appVersion,
+                "X-Shk-Screen": screen, "X-Shk-Screen-Title": screenTitle, "X-Shk-Goftino": goftinoUserId,
+            ],
             as: AppStatusResponse.self
         )
     }
