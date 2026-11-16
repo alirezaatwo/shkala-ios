@@ -147,6 +147,11 @@ enum ApiService {
         try await api.call(.get, "api/v2/home/ui", as: HomeUiResponse.self)
     }
 
+    // ۳.۳: ماژول‌های «تب دسته‌ها با فیلتر» قالب سایت (عنوان، ترتیب تب‌ها و محصولات از سرور)
+    static func getHomeCategoryTabs() async throws -> ApiResponse<HomeCategoryTabsResponse> {
+        try await api.call(.get, "api/v2/home/category-tabs", as: HomeCategoryTabsResponse.self)
+    }
+
     static func getHomeAmazingOffer() async throws -> ApiResponse<AmazingOfferResponse> {
         try await api.call(.get, "api/v2/home/amazing-offer", as: AmazingOfferResponse.self)
     }

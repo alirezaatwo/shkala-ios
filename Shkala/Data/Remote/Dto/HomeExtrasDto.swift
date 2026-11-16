@@ -151,6 +151,56 @@ struct StoryLikeResponse: ShkDTO {
     }
 }
 
+/**
+ * ۳.۳: GET api/v2/home/category-tabs - همه‌ی ماژول‌های «تب دسته‌ها با فیلتر» (ProductList6) قالب فعال سایت،
+ * با ترتیب تب‌ها دقیقاً همون ترتیبی که مدیر در صفحه‌ساز با کشیدن تعیین کرده (api_contract §23).
+ */
+struct HomeCategoryTabsResponse: ShkDTO {
+    let status: String?
+    let modules: [HomeCategoryTabsModuleDto]?
+
+    enum CodingKeys: String, CodingKey { case status, modules }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        status = c.lenientString(.status)
+        modules = c.lossyList(HomeCategoryTabsModuleDto.self, .modules)
+    }
+}
+
+struct HomeCategoryTabsModuleDto: ShkDTO {
+    let id: String?
+    let title: String?
+    let filter: String?
+    let tabs: [HomeCategoryTabDto]?
+
+    enum CodingKeys: String, CodingKey { case id, title, filter, tabs }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.lenientString(.id)
+        title = c.lenientString(.title)
+        filter = c.lenientString(.filter)
+        tabs = c.lossyList(HomeCategoryTabDto.self, .tabs)
+    }
+}
+
+struct HomeCategoryTabDto: ShkDTO {
+    let id: Int?
+    let title: String?
+    let slug: String?
+    let url: String?
+    let products: [ProductListItemDto]?
+
+    enum CodingKeys: String, CodingKey { case id, title, slug, url, products }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.lenientInt(.id)
+        title = c.lenientString(.title)
+        slug = c.lenientString(.slug)
+        url = c.lenientString(.url)
+        products = c.lossyList(ProductListItemDto.self, .products)
+    }
+}
+
 // پیشنهاد شگفت‌انگیز = ماژول ProductList1 قالب فعال سایت (همون منبع و همون محصولات صفحه‌ی اصلی سایت)
 struct AmazingOfferResponse: ShkDTO {
     // false = قالب سایت این ماژول رو نداره (سایت هم نشونش نمی‌ده)

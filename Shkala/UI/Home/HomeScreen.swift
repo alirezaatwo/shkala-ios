@@ -130,7 +130,7 @@ private struct HomeContent: View {
     let announcementText: String?
     let announcementButtonText: String
     let announcementAboveHeader: Bool
-    let onModuleTabSelect: (HomeTabbedModule, Int) -> Void
+    let onModuleTabSelect: (String, Int) -> Void
     let onSolarTabSelect: (Int) -> Void
     let onStoryLike: (Int) -> Void
     let onRefresh: () async -> Void
@@ -235,11 +235,15 @@ private struct HomeContent: View {
                     )
                 }
 
-                // ماژول «سیستم نظارتی»
-                TabbedModuleSection(
-                    module: .SURVEILLANCE, state: state.surveillanceModule,
-                    onTabSelect: onModuleTabSelect, onProductClick: actions.onProductClick, onCategoryClick: actions.onCategoryClick
-                )
+                // ماژول‌های تب‌دار (۳.۳: از قالب سایت، با همون ترتیب صفحه‌ی اصلی سایت): ماژول اول همون جای قبلیِ
+                // «سیستم نظارتی» (بین پربازدیدترین‌ها و انرژی خورشیدی)، بقیه به ترتیب بعد از انرژی خورشیدی
+                if let module = state.tabbedModules.first {
+                    TabbedModuleSection(
+                        module: module, state: state.tabbedModuleStates[module.key] ?? TabbedModuleState(),
+                        onTabSelect: onModuleTabSelect, onProductClick: actions.onProductClick, onCategoryClick: actions.onCategoryClick
+                    )
+                    .id("tabbed-\(module.key)")
+                }
 
                 // ماژول ۴ - انرژی خورشیدی
                 HomeTabbedCarouselSection(
@@ -256,11 +260,13 @@ private struct HomeContent: View {
                     }
                 )
 
-                // ماژول «ملزومات نصب»
-                TabbedModuleSection(
-                    module: .INSTALLATION, state: state.installationModule,
-                    onTabSelect: onModuleTabSelect, onProductClick: actions.onProductClick, onCategoryClick: actions.onCategoryClick
-                )
+                // بقیه‌ی ماژول‌های تب‌دار - بلافاصله بعد از انرژی خورشیدی (جای قبلیِ «ملزومات نصب»)
+                ForEach(Array(state.tabbedModules.dropFirst()), id: \.key) { module in
+                    TabbedModuleSection(
+                        module: module, state: state.tabbedModuleStates[module.key] ?? TabbedModuleState(),
+                        onTabSelect: onModuleTabSelect, onProductClick: actions.onProductClick, onCategoryClick: actions.onCategoryClick
+                    )
+                }
 
                 // ماژول ۵ - بنرهای ۴تایی (کاروسل ۴اسلایده با چرخش بی‌نهایت)
                 if !state.homeBanners.isEmpty {
@@ -556,11 +562,11 @@ private struct ProductRow: View {
     }
 }
 
-/// ماژول‌های تب‌دار جدید («سیستم نظارتی» / «ملزومات نصب») با کش و لود تنبلِ هر تب
+/// ماژول تب‌دار صفحه‌ی اصلی (از قالب سایت، یا ماژول ثابتِ جایگزین با کش و لود تنبلِ هر تب)
 private struct TabbedModuleSection: View {
     let module: HomeTabbedModule
     let state: TabbedModuleState
-    let onTabSelect: (HomeTabbedModule, Int) -> Void
+    let onTabSelect: (String, Int) -> Void
     let onProductClick: (String) -> Void
     let onCategoryClick: (String, String) -> Void
 
@@ -572,7 +578,7 @@ private struct TabbedModuleSection: View {
             selectedTabIndex: selectedIndex,
             products: state.selectedProducts,
             isLoading: state.isSelectedLoading,
-            onTabSelect: { onTabSelect(module, $0) },
+            onTabSelect: { onTabSelect(module.key, $0) },
             onProductClick: onProductClick,
             onViewAllClick: {
                 let tab = module.tabs[selectedIndex]
