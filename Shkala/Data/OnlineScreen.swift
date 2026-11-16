@@ -177,6 +177,8 @@ enum OnlineScreen {
         case .recentlyViewed: return "recently-viewed"
         case .activeSessions: return "active-sessions"
         case .editProfile: return "edit-profile"
+        case .partnerRequest: return "partner-request"
+        case .partnerCommissions: return "partner-commissions"
         }
     }
 }
