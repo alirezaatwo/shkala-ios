@@ -53,7 +53,10 @@ enum OnlineScreen {
     /** مقدار هدر X-Shk-Screen: مسیر صفحه در سایت (/product/..) یا «app:اسم‌صفحه» */
     static func screenHeader() -> String? {
         if isSitePage(), let url = pageUrl, let pathAndQuery = sitePathAndQuery(url) {
-            return String(pathAndQuery.prefix(200))
+            if pathAndQuery.count <= 200 { return pathAndQuery }
+            // مثل اندروید: اگه بلند بود فقط مسیر (بدون کوئری)، بریده از مرز کامل نویسه (نه وسط %XX)
+            let path = pathAndQuery.split(separator: "?", maxSplits: 1).first.map(String.init) ?? pathAndQuery
+            return cutEncoded(path, max: 200)
         }
         guard let route else { return nil }
         let clean = route.filter { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" || $0 == "/") }
@@ -93,6 +96,25 @@ enum OnlineScreen {
         if raw.hasSuffix("?") { raw.removeLast() }
         guard raw.count > 1 || raw == "/" else { return nil }
         return raw.addingPercentEncoding(withAllowedCharacters: sitePathAllowed)
+    }
+
+    /** بریدن رشته‌ی percent-encode شده تا max نویسه از مرز کامل یک نویسه (نه وسط %XX یا وسط بایت‌های UTF-8) */
+    private static func cutEncoded(_ s: String, max: Int) -> String {
+        let chars = Array(s)
+        var out = ""
+        var i = 0
+        while i < chars.count {
+            var len = 1
+            if chars[i] == "%", i + 2 < chars.count, let b = UInt8(String(chars[(i + 1)...(i + 2)]), radix: 16) {
+                // تعداد بایت‌های نویسه از بایت اول UTF-8
+                let bytes = b >= 0xF0 ? 4 : b >= 0xE0 ? 3 : b >= 0xC0 ? 2 : 1
+                len = 3 * bytes
+            }
+            if i + len > chars.count || out.count + len > max { break }
+            out += String(chars[i..<(i + len)])
+            i += len
+        }
+        return out
     }
 
     /** نام مسیر اندروید (Routes) برای مسیر فعلی iOS */
