@@ -13,6 +13,8 @@ struct ShkalaApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                // لینک بیرونی (shkala://open یا لینک سایت با Universal Link): تا بالا اومدن صفحه‌ی اصلی نگه داشته می‌شه
+                .onOpenURL { url in DeepLinkCenter.shared.pending = url }
         }
         // برگشتن اپ به جلو: بررسی اعلان‌های جدید (معادل onResume اکتیویتی اندروید)
         .onChange(of: scenePhase) { phase in
