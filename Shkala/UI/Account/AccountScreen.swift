@@ -20,6 +20,8 @@ struct AccountActions {
     var onAddressesClick: () -> Void
     // فاز ۲۶: منوی «مقایسه‌های من» - بین دیدگاه‌های من و بازدیدهای اخیر
     var onCompareClick: () -> Void = {}
+    // «همکار شوید» / «پورسانت همکاری» (true یعنی کاربر همکار است)
+    var onPartnerClick: (Bool) -> Void = { _ in }
 }
 
 struct AccountScreen: View {
@@ -161,6 +163,14 @@ private struct ProfileScreen: View {
                             MenuDivider()
                             AccountMenuRow(icon: RemixIcons.MapPin2Line, title: "آدرس‌های من", onClick: actions.onAddressesClick, totalCount: addressesCount)
                             MenuDivider()
+                            // مثل منوی پنل کاربر سایت: پس از تأیید همکاری «همکار شوید» به «پورسانت همکاری» تغییر می‌کند
+                            let isPartner = summary?.partnerStatus != nil
+                            AccountMenuRow(
+                                icon: isPartner ? RemixIcons.HandCoinLine : RemixIcons.TeamLine,
+                                title: isPartner ? "پورسانت همکاری" : "همکار شوید",
+                                onClick: { actions.onPartnerClick(isPartner) }
+                            )
+                            MenuDivider()
                             AccountMenuRow(icon: RemixIcons.Notification3Line, title: "اعلان‌ها", onClick: actions.onNotificationsClick, unreadCount: summary?.unreadNotificationsCount)
                         }
 
@@ -256,11 +266,31 @@ private struct ProfileHeaderCard: View {
                 .buttonStyle(.plain)
                 Spacer().frame(width: 12)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(name)
-                        .shkFont(15, .bold)
-                        .foregroundColor(colors.onSurface)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    HStack(spacing: 0) {
+                        Text(name)
+                            .shkFont(15, .bold)
+                            .foregroundColor(colors.onSurface)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        // تگ «همکار» کنار نام (معلق: کهربایی)
+                        if let partnerStatus = summary?.partnerStatus {
+                            let suspended = partnerStatus == "suspended"
+                            let tagColor = suspended ? Color(argb: 0xFFC27A00) : primary
+                            Spacer().frame(width: 6)
+                            HStack(spacing: 3) {
+                                RemixIcon(RemixIcons.TeamLine, tint: tagColor, size: 12)
+                                Text(suspended ? "همکار (معلق)" : "همکار")
+                                    .shkFont(10, .bold)
+                                    .foregroundColor(tagColor)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(tagColor.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .fixedSize()
+                        }
+                    }
                     if !phone.isBlankShk {
                         Spacer().frame(height: 2)
                         Text(phone.toPersianDigits()).shkFont(12).foregroundColor(colors.onSurfaceVariant)

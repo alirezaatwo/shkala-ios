@@ -64,6 +64,9 @@ enum AppRoute: Hashable {
     case recentlyViewed
     case activeSessions
     case editProfile
+    // همکار شوید / پورسانت همکاری
+    case partnerRequest
+    case partnerCommissions
 
     /// اسلاگ‌های قراردادی فهرست‌های «مشاهده همه» صفحه‌ی اصلی (همون Routes.*_SLUG اندروید)
     static let DISCOUNT_PRODUCTS_SLUG = "__discount__"
@@ -122,6 +125,8 @@ enum AppRoute: Hashable {
         case .recentlyViewed: return "بازدیدهای اخیر"
         case .activeSessions: return "نشست‌های فعال"
         case .editProfile: return "ویرایش حساب کاربری"
+        case .partnerRequest: return "همکار شوید"
+        case .partnerCommissions: return "پورسانت همکاری"
         }
     }
 }
@@ -503,7 +508,8 @@ struct AppRoot: View {
             onSessionsClick: { navigator.navigate(.activeSessions) },
             onEditProfileClick: { navigator.navigate(.editProfile) },
             onAddressesClick: { navigator.navigate(.addresses) },
-            onCompareClick: { navigator.navigate(.compare) }
+            onCompareClick: { navigator.navigate(.compare) },
+            onPartnerClick: { isPartner in navigator.navigate(isPartner ? .partnerCommissions : .partnerRequest) }
         ))
         .id(accountEpoch)
     }
@@ -720,6 +726,21 @@ struct AppRoot: View {
             }
         case .editProfile:
             EditProfileScreen(onBack: { navigator.popBackStack() })
+        case .partnerRequest:
+            PartnerRequestScreen(
+                onBack: { navigator.popBackStack() },
+                // پس از تأیید همکاری، همین صفحه جای خودش را به «پورسانت همکاری» می‌دهد
+                onOpenCommissions: {
+                    navigator.navigate(.partnerCommissions, popUpTo: { $0 == .partnerRequest }, inclusive: true)
+                },
+                onEditProfile: { navigator.navigate(.editProfile) },
+                onAddresses: { navigator.navigate(.addresses) }
+            )
+        case .partnerCommissions:
+            PartnerCommissionsScreen(
+                onBack: { navigator.popBackStack() },
+                onOpenProduct: { slug in navigator.navigate(.productDetail(slug: slug)) }
+            )
         case .ticketsList:
             TicketsListScreen(
                 onBack: { navigator.popBackStack() },
