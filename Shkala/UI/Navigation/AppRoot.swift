@@ -367,6 +367,12 @@ struct AppRoot: View {
             }
             PushOpenCenter.shared.pending = nil
         }
+        // لینک بیرونی که اپ رو باز کرده (معادل LaunchedEffect(pendingDeepLink) اندروید)
+        .onReceive(DeepLinkCenter.shared.$pending) { url in
+            guard let url else { return }
+            DeepLinkCenter.shared.pending = nil
+            navigator.handleDeepLink(url)
+        }
         // تب انتخاب‌شده از هر جای اپ (مثلاً منوی «مجله» یا لینک) هم زنده نگه داشته می‌شه
         .onChange(of: navigator.tab) { t in visitedTabs.insert(t) }
         // صفحه‌ی فعلی برای «کاربران آنلاین» پنل سایت (معادل OnlineScreen.updateRoute اندروید)

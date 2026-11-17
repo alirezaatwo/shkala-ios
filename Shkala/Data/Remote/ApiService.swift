@@ -71,6 +71,13 @@ enum ApiService {
         try await api.callIgnoringBody(.post, "api/v2/popup/event", form: ["pid": String(pid), "event": event])
     }
 
+    // لینک همکاری در فروش (shkala.com/p/{uuid}?u=...) که با اپ باز شده: معرف برای همین نصب (هدر X-Shk-Install) ثبت می‌شه
+    static func affiliateReferral(productUuid: String, affiliateId: Int64?) async throws -> ApiResponse<AffiliateReferralResponse> {
+        try await api.call(.post, "api/v2/affiliate/referral",
+                           form: ["product_uuid": productUuid, "u": affiliateId.map { String($0) }],
+                           as: AffiliateReferralResponse.self)
+    }
+
     static func getArticles(category: String? = nil, page: Int = 1) async throws -> ApiResponse<ArticlesResponse> {
         try await api.call(.get, "api/v2/articles", query: ["category": category, "page": String(page)], as: ArticlesResponse.self)
     }
