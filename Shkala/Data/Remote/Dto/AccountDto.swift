@@ -32,6 +32,8 @@ struct AccountSummaryResponse: ShkDTO {
     // آستانه‌های امتیاز سطح نقره‌ای/طلایی (تنظیمات پنل ادمین) - برای مودال «سطح کاربری»
     let silverLevel: Int64?
     let goldLevel: Int64?
+    // وضعیت همکاری: active / suspended / null (همکار نیست)
+    let partnerStatus: String?
 
     enum CodingKeys: String, CodingKey {
         case status, level
@@ -40,6 +42,7 @@ struct AccountSummaryResponse: ShkDTO {
         case commentsCount = "comments_count", clubScore = "club_score"
         case unreadNotificationsCount = "unread_notifications_count"
         case silverLevel = "silver_level", goldLevel = "gold_level"
+        case partnerStatus = "partner_status"
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -56,6 +59,7 @@ struct AccountSummaryResponse: ShkDTO {
         unreadNotificationsCount = c.lenientInt(.unreadNotificationsCount) ?? 0
         silverLevel = c.lenientInt64(.silverLevel)
         goldLevel = c.lenientInt64(.goldLevel)
+        partnerStatus = c.lenientString(.partnerStatus)
     }
 }
 

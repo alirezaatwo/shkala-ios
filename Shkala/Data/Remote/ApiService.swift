@@ -627,6 +627,32 @@ enum ApiService {
     static func markAppNotificationClicked(id: Int64, _ body: PushEventRequest) async throws -> ApiResponse<AppTelemetryResponse> {
         try await api.call(.post, "api/v2/app/notifications/\(id)/clicked", body: body, as: AppTelemetryResponse.self)
     }
+
+    // ---- «همکار شوید» و «پورسانت همکاری» (api_contract §25) ----
+
+    static func partnerStatus() async throws -> ApiResponse<PartnerResponse> {
+        try await api.call(.get, "api/v2/partner", as: PartnerResponse.self)
+    }
+
+    static func partnerUpload(parts: [MultipartPart]) async throws -> ApiResponse<PartnerResponse> {
+        try await api.callMultipart(.post, "api/v2/partner/file", parts: parts, as: PartnerResponse.self)
+    }
+
+    static func partnerDeleteFile(_ kind: String) async throws -> ApiResponse<PartnerResponse> {
+        try await api.call(.delete, "api/v2/partner/file/\(enc(kind))", as: PartnerResponse.self)
+    }
+
+    static func partnerCheckBale() async throws -> ApiResponse<PartnerResponse> {
+        try await api.call(.post, "api/v2/partner/bale", as: PartnerResponse.self)
+    }
+
+    static func partnerSubmit() async throws -> ApiResponse<PartnerResponse> {
+        try await api.call(.post, "api/v2/partner/submit", as: PartnerResponse.self)
+    }
+
+    static func partnerCommissions(page: Int = 1, search: String? = nil) async throws -> ApiResponse<PartnerCommissionsResponse> {
+        try await api.call(.get, "api/v2/partner/commissions", query: ["page": String(page), "search": search], as: PartnerCommissionsResponse.self)
+    }
 }
 
 /// معادل currentAppVersionName اپ اندروید: نسخه‌ی نمایشی اپ (CFBundleShortVersionString)
