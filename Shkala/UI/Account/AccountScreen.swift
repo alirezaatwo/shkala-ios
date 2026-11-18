@@ -661,3 +661,43 @@ private struct LevelTip: View {
         .padding(.vertical, 3)
     }
 }
+
+/// فقط عکس‌برداری (شاخه‌ی موقت): هدر حساب با تگ همکار و منوی «حساب کاربری» با داده‌ی نمونه
+struct ScreenshotAccountPartnerPreview: View {
+    let status: String?
+    @Environment(\.shkColors) private var colors
+
+    private var summary: AccountSummaryResponse? {
+        let ps = status.map { "\"\($0)\"" } ?? "null"
+        let json = #"{"status":"ok","total_orders":14,"total_spent":48500000,"wallet_amount":850000,"pending_orders":1,"tickets_count":2,"questions_count":3,"comments_count":5,"club_score":1250,"level":"silver","unread_notifications_count":2,"partner_status":\#(ps)}"#
+        return try? ShkJSON.decoder.decode(AccountSummaryResponse.self, from: Data(json.utf8))
+    }
+
+    var body: some View {
+        let s = summary
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: 16)
+                ProfileHeaderCard(name: "رضا محمدی", phone: "09121234567", avatarUrl: nil, summary: s, onEditProfileClick: {})
+                if let s {
+                    Spacer().frame(height: 12)
+                    AccountStatsGrid(summary: s, onOrdersClick: {}, onWalletClick: {}, onTicketsClick: {}, onCommentsClick: {})
+                }
+                MenuGroup(title: "حساب کاربری") {
+                    AccountMenuRow(icon: RemixIcons.SmartphoneLine, title: "نشست‌های فعال", onClick: {}, totalCount: 2)
+                    MenuDivider()
+                    AccountMenuRow(icon: RemixIcons.UserSettingsLine, title: "ویرایش حساب کاربری", onClick: {})
+                    MenuDivider()
+                    AccountMenuRow(icon: RemixIcons.MapPin2Line, title: "آدرس‌های من", onClick: {}, totalCount: 1)
+                    MenuDivider()
+                    let isPartner = s?.partnerStatus != nil
+                    AccountMenuRow(icon: isPartner ? RemixIcons.HandCoinLine : RemixIcons.TeamLine, title: isPartner ? "پورسانت همکاری" : "همکار شوید", onClick: {})
+                    MenuDivider()
+                    AccountMenuRow(icon: RemixIcons.Notification3Line, title: "اعلان‌ها", onClick: {}, unreadCount: 2)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .background(colors.background.ignoresSafeArea())
+    }
+}
