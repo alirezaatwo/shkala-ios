@@ -121,6 +121,9 @@ struct RootView: View {
                 .task { await ScreenshotMode.openProduct(slug) }
         case .cart:
             AppRoot(isDarkTheme: mode.dark, initialCartOpen: true).systemBarsBackground()
+        case .route(let name) where name.hasPrefix("account-partner"):
+            ScreenshotAccountPartnerPreview(status: name == "account-partner-suspended" ? "suspended" : name == "account-partner-none" ? nil : "active")
+                .systemBarsBackground()
         case .route(let name):
             AppRoot(isDarkTheme: mode.dark)
                 .systemBarsBackground()
@@ -249,6 +252,8 @@ struct ScreenshotMode {
         case "compare": nav.navigate(.compare)
         case "in-carts": nav.navigate(.inCartsNow)
         case "announcement": nav.navigate(.announcement)
+        case "partner-request": nav.navigate(.partnerRequest)
+        case "partner-commissions": nav.navigate(.partnerCommissions)
         // مرحله‌ی ۶: مودال بروزرسانی (عادی / اجباری) با داده‌ی نمونه
         case "update": AppUpdateViewModel.shared.showScreenshotPreview(forced: false)
         case "update-forced": AppUpdateViewModel.shared.showScreenshotPreview(forced: true)

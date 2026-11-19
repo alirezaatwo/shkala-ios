@@ -23,7 +23,10 @@ struct PartnerRepository {
     private static let GENERIC_ERROR = "خطایی رخ داد. لطفاً دوباره تلاش کنید."
     private static let MAX_SIDE: CGFloat = 2000
 
-    func status() async -> ApiResult<PartnerOutcome> { await call { try await ApiService.partnerStatus() } }
+    func status() async -> ApiResult<PartnerOutcome> {
+        if let sample = ScreenshotPartnerSamples.state() { return .success(PartnerOutcome(ok: true, message: nil, state: sample)) }
+        return await call { try await ApiService.partnerStatus() }
+    }
 
     func deleteFile(_ kind: String) async -> ApiResult<PartnerOutcome> { await call { try await ApiService.partnerDeleteFile(kind) } }
 
@@ -46,6 +49,7 @@ struct PartnerRepository {
     }
 
     func commissions(page: Int, search: String?) async -> ApiResult<PartnerCommissionsResponse> {
+        if let sample = ScreenshotPartnerSamples.commissions() { return .success(sample) }
         do {
             let r = try await ApiService.partnerCommissions(page: page, search: search)
             if r.isSuccessful, let body = r.body { return .success(body) }
