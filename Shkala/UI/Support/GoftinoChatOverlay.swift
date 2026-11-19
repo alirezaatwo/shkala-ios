@@ -74,12 +74,15 @@ struct GoftinoChatOverlay: View {
         }
         // هر بار کاربر یه محصول/دسته‌بندی جدید رو مشاهده کرد، بدون reload صفحه‌ی گفتینو
         // (که گفتگو رو پاک می‌کرد)، همون لحظه با جاوااسکریپت به گفتینو خبر می‌دیم "الان کاربر این‌جاست"
+        // اسم محصول/دسته کمی بعد از باز شدن صفحه ثبت می‌شه: صفحه‌ی فعلی دوباره به «کاربران آنلاین» پنل
         .onChange(of: currentPage.currentPageUrl) { url in
             OnlineScreen.pageUrl = url
+            OnlinePresenceReporter.screenChanged()
             pushCurrentPage()
         }
         .onChange(of: currentPage.currentPageLabel) { label in
             OnlineScreen.pageLabel = label
+            OnlinePresenceReporter.screenChanged()
             pushCurrentPage()
         }
         .onChange(of: goftinoVm.isWebViewReady) { _ in pushCurrentPage() }
@@ -154,6 +157,8 @@ private struct GoftinoWebView: UIViewRepresentable {
             if let dict = message.body as? [String: Any], let id = dict["goftinoUser"] as? String {
                 let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
                 OnlineScreen.goftinoUserId = trimmed.isEmpty ? nil : trimmed
+                // دکمه‌ی چت این کاربر در پنل همین الان فعال بشه
+                Task { @MainActor in OnlinePresenceReporter.screenChanged() }
                 return
             }
             DispatchQueue.main.async {
@@ -197,10 +202,16 @@ private func buildGoftinoHtmlPersistent(_ platformLabel: String) -> String {
                     forceUpdate: true
                 });
                 if (window.AndroidBridge) { window.AndroidBridge.onWidgetReady(); }
-                try {
-                    var gid = Goftino.getUserId ? Goftino.getUserId() : '';
-                    if (window.AndroidBridge && gid) { window.AndroidBridge.onGoftinoUser(String(gid)); }
-                } catch (e) {}
+                // شناسه‌ی کاربر گفتینو برای چت از پنل (کاربر تازه کمی بعد از ready شناسه می‌گیره: چند بار دیگه)
+                var gofTries = 0;
+                var gofCheck = function () {
+                    try {
+                        var gid = Goftino.getUserId ? Goftino.getUserId() : '';
+                        if (window.AndroidBridge && gid) { window.AndroidBridge.onGoftinoUser(String(gid)); return; }
+                    } catch (e) {}
+                    if (++gofTries < 20) { setTimeout(gofCheck, 3000); }
+                };
+                gofCheck();
             });
 
             window.addEventListener('goftino_closeWidget', function () {

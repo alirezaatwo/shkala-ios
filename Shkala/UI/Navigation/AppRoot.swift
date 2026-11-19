@@ -233,6 +233,8 @@ struct AppRoot: View {
     @ObservedObject private var dialogCenter = ShkDialogCenter.shared
     @ObservedObject private var startupDialogs = StartupDialogsState.shared
     @Environment(\.shkColors) private var colors
+    // اپ رفت پس‌زمینه / جلو اومد: برای «کاربران آنلاین» پنل سایت
+    @Environment(\.scenePhase) private var presenceScenePhase
 
     // فاز ۲۶: سایدبار اصلی اپ - از پشت منوی همبرگری کنار لوگوی هدر باز می‌شه
     @State private var showAppDrawer = false
@@ -381,9 +383,27 @@ struct AppRoot: View {
         // تب انتخاب‌شده از هر جای اپ (مثلاً منوی «مجله» یا لینک) هم زنده نگه داشته می‌شه
         .onChange(of: navigator.tab) { t in visitedTabs.insert(t) }
         // صفحه‌ی فعلی برای «کاربران آنلاین» پنل سایت (معادل OnlineScreen.updateRoute اندروید)
-        .onAppear { OnlineScreen.updateRoute(tab: navigator.tab, current: navigator.currentRoute) }
-        .onChange(of: navigator.tab) { t in OnlineScreen.updateRoute(tab: t, current: navigator.currentRoute) }
-        .onChange(of: navigator.stack) { s in OnlineScreen.updateRoute(tab: navigator.tab, current: s.last) }
+        // (با آرگومان‌هاش: شماره‌ی سفارش، عبارت جست‌وجو و ...) و ارسال فوری به پنل (OnlinePresenceReporter)
+        .onAppear {
+            OnlineScreen.updateRoute(tab: navigator.tab, current: navigator.currentRoute)
+            OnlinePresenceReporter.screenChanged()
+        }
+        .onChange(of: navigator.tab) { t in
+            OnlineScreen.updateRoute(tab: t, current: navigator.currentRoute)
+            OnlinePresenceReporter.screenChanged()
+        }
+        .onChange(of: navigator.stack) { s in
+            OnlineScreen.updateRoute(tab: navigator.tab, current: s.last)
+            OnlinePresenceReporter.screenChanged()
+        }
+        // اپ رفت پس‌زمینه = فوراً از «کاربران آنلاین» خارج؛ برگشت = دوباره آنلاین با همون صفحه (معادل ON_STOP/ON_START)
+        .onChange(of: presenceScenePhase) { phase in
+            switch phase {
+            case .active: OnlinePresenceReporter.screenChanged(force: true)
+            case .background: OnlinePresenceReporter.leave()
+            default: break
+            }
+        }
         .onChange(of: navigator.tab == .CATEGORIES && navigator.stack.isEmpty) { visible in
             guard visible else { return }
             // فاز ۳۲/۳۴: تب درخواستیِ «مجله» اولویت داره و بلافاصله پاک می‌شه؛ بعد آخرین تبی که کاربر داشت

@@ -593,6 +593,21 @@ enum ApiService {
         )
     }
 
+    /// کاربران آنلاین پنل: صفحه‌ی فعلی با هر جابه‌جایی صفحه، X-Shk-Leave: 1 = رفتن به پس‌زمینه (پاسخ 204)
+    static func sendAppPresence(
+        installId: String?, appVersion: String?,
+        screen: String?, screenTitle: String?, goftinoUserId: String?, leave: String?
+    ) async throws -> ApiResponse<Bool> {
+        try await api.callIgnoringBody(
+            .post, "api/v2/app/presence",
+            headers: [
+                "X-Shk-Install": installId, "X-Shk-Version": appVersion,
+                "X-Shk-Screen": screen, "X-Shk-Screen-Title": screenTitle, "X-Shk-Goftino": goftinoUserId,
+                "X-Shk-Leave": leave,
+            ]
+        )
+    }
+
     /// آخرین نسخه‌ی منتشرشده؛ سرور با هدر X-Shk-Platform: ios (همه‌ی درخواست‌ها) نسخه‌ی iOS رو برمی‌گردونه
     static func getAppLatestVersion() async throws -> ApiResponse<AppLatestVersionResponse> {
         try await api.call(.get, "api/v2/app/latest-version", query: ["platform": "ios"], as: AppLatestVersionResponse.self)
