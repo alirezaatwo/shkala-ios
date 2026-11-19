@@ -164,13 +164,16 @@ private struct ProfileScreen: View {
                             AccountMenuRow(icon: RemixIcons.MapPin2Line, title: "آدرس‌های من", onClick: actions.onAddressesClick, totalCount: addressesCount)
                             MenuDivider()
                             // مثل منوی پنل کاربر سایت: پس از تأیید همکاری «همکار شوید» به «پورسانت همکاری» تغییر می‌کند
+                            // اگر ثبت درخواست همکاری در تنظیمات خاموش باشد «همکار شوید» مخفی است (همکار همچنان «پورسانت همکاری» را می‌بیند)
                             let isPartner = summary?.partnerStatus != nil
-                            AccountMenuRow(
-                                icon: isPartner ? RemixIcons.HandCoinLine : RemixIcons.TeamLine,
-                                title: isPartner ? "پورسانت همکاری" : "همکار شوید",
-                                onClick: { actions.onPartnerClick(isPartner) }
-                            )
-                            MenuDivider()
+                            if isPartner || summary?.partnerRequestOpen != false {
+                                AccountMenuRow(
+                                    icon: isPartner ? RemixIcons.HandCoinLine : RemixIcons.TeamLine,
+                                    title: isPartner ? "پورسانت همکاری" : "همکار شوید",
+                                    onClick: { actions.onPartnerClick(isPartner) }
+                                )
+                                MenuDivider()
+                            }
                             AccountMenuRow(icon: RemixIcons.Notification3Line, title: "اعلان‌ها", onClick: actions.onNotificationsClick, unreadCount: summary?.unreadNotificationsCount)
                         }
 

@@ -34,6 +34,8 @@ struct AccountSummaryResponse: ShkDTO {
     let goldLevel: Int64?
     // وضعیت همکاری: active / suspended / null (همکار نیست)
     let partnerStatus: String?
+    // false = ثبت درخواست همکاری در تنظیمات خاموش است و «همکار شوید» مخفی می‌شود (نبودن کلید = روشن)
+    let partnerRequestOpen: Bool?
 
     enum CodingKeys: String, CodingKey {
         case status, level
@@ -43,6 +45,7 @@ struct AccountSummaryResponse: ShkDTO {
         case unreadNotificationsCount = "unread_notifications_count"
         case silverLevel = "silver_level", goldLevel = "gold_level"
         case partnerStatus = "partner_status"
+        case partnerRequestOpen = "partner_request_open"
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -60,6 +63,7 @@ struct AccountSummaryResponse: ShkDTO {
         silverLevel = c.lenientInt64(.silverLevel)
         goldLevel = c.lenientInt64(.goldLevel)
         partnerStatus = c.lenientString(.partnerStatus)
+        partnerRequestOpen = c.lenientBool(.partnerRequestOpen)
     }
 }
 
