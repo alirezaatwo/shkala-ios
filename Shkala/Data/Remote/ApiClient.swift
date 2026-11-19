@@ -153,8 +153,8 @@ final class ApiClient {
     }
 
     /// درخواستی که بدنه‌ی پاسخش مهم نیست (معادل Response<Unit> رتروفیت)
-    func callIgnoringBody(_ method: HttpMethod, _ path: String, form: [String: String?]? = nil) async throws -> ApiResponse<Bool> {
-        let request = makeRequest(method, path, query: [:], queryList: [], jsonBody: nil, formBody: form, headers: [:])
+    func callIgnoringBody(_ method: HttpMethod, _ path: String, form: [String: String?]? = nil, headers: [String: String?] = [:]) async throws -> ApiResponse<Bool> {
+        let request = makeRequest(method, path, query: [:], queryList: [], jsonBody: nil, formBody: form, headers: headers)
         let (data, response) = try await session.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         Self.recordApiError(request, response)
