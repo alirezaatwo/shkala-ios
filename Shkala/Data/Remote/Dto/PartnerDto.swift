@@ -21,6 +21,8 @@ struct PartnerResponse: ShkDTO {
 
 struct PartnerStateDto: ShkDTO {
     var ready: Bool = false
+    // false = ثبت درخواست همکاری در تنظیمات خاموش است
+    var enabled: Bool? = nil
     // none | draft | submitted | rejected | partner | suspended
     var state: String = "none"
     var editable: Bool = false
@@ -33,13 +35,14 @@ struct PartnerStateDto: ShkDTO {
     var maxKb: Int = 10240
 
     enum CodingKeys: String, CodingKey {
-        case ready, state, editable, steps, documents
+        case ready, enabled, state, editable, steps, documents
         case rejectReason = "reject_reason", retryAt = "retry_at", submittedAt = "submitted_at"
         case canSubmit = "can_submit", maxKb = "max_kb"
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         ready = c.lenientBool(.ready) ?? false
+        enabled = c.lenientBool(.enabled)
         state = c.lenientString(.state) ?? "none"
         editable = c.lenientBool(.editable) ?? false
         rejectReason = c.lenientString(.rejectReason)

@@ -139,7 +139,13 @@ struct PartnerRequestScreen: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let s = state {
                     if !s.ready {
-                        SiteEmptyState(icon: RemixIcons.TimeLine, title: "این بخش به‌زودی فعال می‌شود", subtitle: "لطفاً کمی بعد دوباره سر بزنید.")
+                        Group {
+                            if s.enabled == false {
+                                SiteEmptyState(icon: RemixIcons.TeamLine, title: "ثبت درخواست همکاری فعلاً امکان‌پذیر نیست", subtitle: "لطفاً بعداً دوباره سر بزنید.")
+                            } else {
+                                SiteEmptyState(icon: RemixIcons.TimeLine, title: "این بخش به‌زودی فعال می‌شود", subtitle: "لطفاً کمی بعد دوباره سر بزنید.")
+                            }
+                        }
                             .padding(16)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
