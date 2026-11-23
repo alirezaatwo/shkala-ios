@@ -163,7 +163,7 @@ final class PaymentWebModel: ObservableObject {
             html += "<input type=\"hidden\" name=\"\(escapeHtml(key))\" value=\"\(escapeHtml(value))\"/>"
         }
         html += "</form></body></html>"
-        webView?.loadHTMLString(html, baseURL: URL(string: action))
+        webView?.loadHTMLString(html, baseURL: URL(string: ApiConstants.BASE_URL))
     }
 
     // فقط برای ورود (رفتن به بانک) یه تایمر ثابت داریم - وقتی این تموم شد
