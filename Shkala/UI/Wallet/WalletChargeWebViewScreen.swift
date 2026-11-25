@@ -109,7 +109,7 @@ final class WalletChargeWebModel: ObservableObject {
             html += "<input type=\"hidden\" name=\"\(escapeHtmlW(key))\" value=\"\(escapeHtmlW(value))\"/>"
         }
         html += "</form></body></html>"
-        webView?.loadHTMLString(html, baseURL: URL(string: action))
+        webView?.loadHTMLString(html, baseURL: URL(string: ApiConstants.BASE_URL))
     }
 
     private func scheduleEntryHide() {

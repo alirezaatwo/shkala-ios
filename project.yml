@@ -15,8 +15,8 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "3.10"
-    CURRENT_PROJECT_VERSION: "31"
+    MARKETING_VERSION: "3.11"
+    CURRENT_PROJECT_VERSION: "32"
 targets:
   Shkala:
     type: application
