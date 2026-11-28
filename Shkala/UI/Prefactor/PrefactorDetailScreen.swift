@@ -224,8 +224,13 @@ struct PrefactorDetailScreen: View {
                 Spacer().frame(height: 12)
                 SiteCard(contentPadding: .hv(14, 8)) {
                     PrefactorFinancialLine(label: "جمع کل", amount: financial?.totalPrice ?? 0, icon: RemixIcons.ShoppingBag3Line)
-                    if (financial?.totalDiscount ?? 0) > 0 {
-                        PrefactorFinancialLine(label: "تخفیف", amount: -(financial?.totalDiscount ?? 0), icon: RemixIcons.PercentLine, valueColor: SiteStatusColors.Success)
+                    // «تخفیف همکاری» جدا از تخفیف (جمع همان)
+                    let partnerDiscount = financial?.totalPartnerDiscount ?? 0
+                    if (financial?.totalDiscount ?? 0) - partnerDiscount > 0 {
+                        PrefactorFinancialLine(label: "تخفیف", amount: -((financial?.totalDiscount ?? 0) - partnerDiscount), icon: RemixIcons.PercentLine, valueColor: SiteStatusColors.Success)
+                    }
+                    if partnerDiscount > 0 {
+                        PrefactorFinancialLine(label: "تخفیف همکاری", amount: -partnerDiscount, icon: RemixIcons.TeamLine, valueColor: SiteStatusColors.Success)
                     }
                     if (financial?.totalCouponDiscountPrice ?? 0) > 0 {
                         PrefactorFinancialLine(label: "کد تخفیف", amount: -(financial?.totalCouponDiscountPrice ?? 0), icon: RemixIcons.Coupon2Line, valueColor: SiteStatusColors.Success)

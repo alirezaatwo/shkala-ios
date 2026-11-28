@@ -212,9 +212,12 @@ struct ProductInventoryDto: Decodable, Equatable, Identifiable {
     let minSale: Int?
     let maxSale: Int?
     let props: [CartPropDto]
+    // «قیمت همکاری»: فقط برای همکار فعال true (final_price = قیمت همکاری)
+    let isPartnerPrice: Bool
 
     enum CodingKeys: String, CodingKey {
         case id, price, count, props
+        case isPartnerPrice = "is_partner_price"
         case discountPrice = "discount_price", isDiscountValid = "is_discount_valid", finalPrice = "final_price"
         case minSale = "min_sale", maxSale = "max_sale"
     }
@@ -230,6 +233,7 @@ struct ProductInventoryDto: Decodable, Equatable, Identifiable {
         minSale = c.lenientInt(.minSale)
         maxSale = c.lenientInt(.maxSale)
         props = c.lossyList(CartPropDto.self, .props) ?? []
+        isPartnerPrice = c.lenientBool(.isPartnerPrice) ?? false
     }
 
     var minQuantity: Int {
@@ -319,9 +323,12 @@ struct ProductSellerDto: Decodable, Equatable {
     let isBestPrice: Bool?
     // فاز PA: زمان ارسال همین موجودی (send_time اسکریپت؛ خالی = «آماده ارسال»)
     let sendTime: String?
+    // «قیمت همکاری»: فقط برای همکار فعال true؛ قیمت‌ها و discount_tree همین موجودی = قیمت و پله‌های همکار
+    let isPartnerPrice: Bool
 
     enum CodingKeys: String, CodingKey {
         case price, count, store
+        case isPartnerPrice = "is_partner_price"
         case inventoryId = "inventory_id", formattedPrice = "get_formatted_price", discountPrice = "discount_price"
         case formattedDiscountPrice = "get_formatted_discount_price", isDiscountValid = "is_discount_valid"
         case finalPrice = "get_final_price", formattedFinalPrice = "get_formatted_final_price"
@@ -364,6 +371,7 @@ struct ProductSellerDto: Decodable, Equatable {
         store = try? c.decodeIfPresent(StoreDto.self, forKey: .store)
         isBestPrice = c.lenientBool(.isBestPrice)
         sendTime = c.lenientString(.sendTime)
+        isPartnerPrice = c.lenientBool(.isPartnerPrice) ?? false
     }
 }
 

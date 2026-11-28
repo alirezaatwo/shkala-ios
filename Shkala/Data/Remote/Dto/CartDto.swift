@@ -8,8 +8,11 @@ struct CartResponse: ShkDTO {
     let totalPrice: Int64
     let totalDiscount: Int64
     let totalFinalPrice: Int64
+    // «تخفیف همکاری»: بخشی از total_discount (فقط همکار فعال؛ سرور قدیمی = ۰)
+    let totalPartnerDiscount: Int64
     enum CodingKeys: String, CodingKey {
         case status, items, totalPrice = "total_price", totalDiscount = "total_discount", totalFinalPrice = "total_final_price"
+        case totalPartnerDiscount = "total_partner_discount"
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -18,6 +21,7 @@ struct CartResponse: ShkDTO {
         totalPrice = c.lenientInt64(.totalPrice) ?? 0
         totalDiscount = c.lenientInt64(.totalDiscount) ?? 0
         totalFinalPrice = c.lenientInt64(.totalFinalPrice) ?? 0
+        totalPartnerDiscount = c.lenientInt64(.totalPartnerDiscount) ?? 0
     }
 }
 
@@ -149,9 +153,14 @@ struct CartItemDto: ShkDTO, Equatable, Identifiable {
     let fullCountPrice: Int64
     let product: CartProductDto?
     let store: CartStoreDto?
+    // «قیمت همکاری»: این ردیف با قیمت همکاری حساب شده (فقط همکار فعال)
+    let isPartnerPrice: Bool
+    // «تخفیف همکاری» یک عدد (بخشی از discount)
+    let partnerDiscount: Int64
 
     enum CodingKeys: String, CodingKey {
         case id, count, price, discount, product, store
+        case isPartnerPrice = "is_partner_price", partnerDiscount = "partner_discount"
         case consignmentId = "consignment_id", inventoryId = "inventory_id", maxAvailableCount = "max_available_count"
         case props = "get_props", options = "get_options", formattedPrice = "get_formatted_price"
         case formattedDiscount = "get_formatted_discount", fullCountPrice = "get_full_count_price"
@@ -173,6 +182,8 @@ struct CartItemDto: ShkDTO, Equatable, Identifiable {
         fullCountPrice = c.lenientInt64(.fullCountPrice) ?? 0
         product = try? c.decodeIfPresent(CartProductDto.self, forKey: .product)
         store = try? c.decodeIfPresent(CartStoreDto.self, forKey: .store)
+        isPartnerPrice = c.lenientBool(.isPartnerPrice) ?? false
+        partnerDiscount = c.lenientInt64(.partnerDiscount) ?? 0
     }
 
     var hasDiscount: Bool { discount > 0 }

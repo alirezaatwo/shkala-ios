@@ -275,24 +275,6 @@ private struct ProfileHeaderCard: View {
                             .foregroundColor(colors.onSurface)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                        // تگ «همکار» کنار نام (معلق: کهربایی)
-                        if let partnerStatus = summary?.partnerStatus {
-                            let suspended = partnerStatus == "suspended"
-                            let tagColor = suspended ? Color(argb: 0xFFC27A00) : primary
-                            Spacer().frame(width: 6)
-                            HStack(spacing: 3) {
-                                RemixIcon(RemixIcons.TeamLine, tint: tagColor, size: 12)
-                                Text(suspended ? "همکار (معلق)" : "همکار")
-                                    .shkFont(10, .bold)
-                                    .foregroundColor(tagColor)
-                                    .lineLimit(1)
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(tagColor.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .fixedSize()
-                        }
                     }
                     if !phone.isBlankShk {
                         Spacer().frame(height: 2)
@@ -301,6 +283,24 @@ private struct ProfileHeaderCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 if let summary {
+                  // تگ «همکار» بالای تگ سطح (نه کنار نام) تا نام کاربری طولانی چیدمان را به‌هم نریزد
+                  VStack(spacing: 6) {
+                    if let partnerStatus = summary.partnerStatus {
+                        let suspended = partnerStatus == "suspended"
+                        let tagColor = suspended ? Color(argb: 0xFFC27A00) : primary
+                        HStack(spacing: 3) {
+                            RemixIcon(RemixIcons.TeamLine, tint: tagColor, size: 12)
+                            Text(suspended ? "همکار (معلق)" : "همکار")
+                                .shkFont(10, .bold)
+                                .foregroundColor(tagColor)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(tagColor.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .fixedSize()
+                    }
                     // تگ سطح کاربر (رنگ سطح: برنزی / نقره‌ای / طلایی) - با زدن روش، مودال راهنمای ارتقای سطح باز می‌شه
                     let levelTint = levelColor(summary.level)
                     Button(action: onLevelClick) {
@@ -317,6 +317,7 @@ private struct ProfileHeaderCard: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                  }
                 }
             }
             if let summary {

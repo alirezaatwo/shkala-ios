@@ -63,6 +63,7 @@ struct CartSheetContent: View {
                 CartSummaryBar(
                     itemCount: state.itemCount,
                     totalDiscount: state.totalDiscount,
+                    partnerDiscount: state.totalPartnerDiscount,
                     totalFinalPrice: state.totalFinalPrice,
                     onCheckout: { onClose(); onCheckout() },
                     onPrefactor: { onClose(); onPrefactor() }
@@ -188,7 +189,10 @@ private struct CartItemRow: View {
             // ردیف پایین: قیمت (راست) + حذف و تنظیم‌کننده‌ی تعداد (چپ)
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
-                    if item.hasDiscount {
+                    if item.isPartnerPrice {
+                        // «قیمت همکاری»: برچسب به‌جای قیمت خط‌خورده
+                        PartnerPriceTag()
+                    } else if item.hasDiscount {
                         Text(formatTomanFa(item.unitOriginalPrice))
                             .shkFont(11)
                             .strikethrough()
@@ -275,6 +279,7 @@ private struct QuantityStepButton: View {
 private struct CartSummaryBar: View {
     let itemCount: Int
     let totalDiscount: Int64
+    let partnerDiscount: Int64
     let totalFinalPrice: Int64
     let onCheckout: () -> Void
     let onPrefactor: () -> Void
@@ -310,6 +315,9 @@ private struct CartSummaryBar: View {
                         VStack(alignment: .leading, spacing: 0) {
                             Text("سود شما از این خرید").shkFont(11).foregroundColor(colors.onSurfaceVariant)
                             Text("\(formatTomanFa(totalDiscount)) تومان").shkFont(13, .bold).foregroundColor(colors.primary)
+                            if partnerDiscount > 0 {
+                                Text("شامل تخفیف همکاری \(formatTomanFa(partnerDiscount)) تومان").shkFont(10).foregroundColor(colors.onSurfaceVariant)
+                            }
                         }
                     }
                 }

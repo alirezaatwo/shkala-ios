@@ -565,6 +565,10 @@ private struct ProductListRow: View {
                                 .shkFont(14, .bold)
                                 .foregroundColor(colors.primary)
                         } else {
+                            // «قیمت همکاری»: فقط برای همکار فعال
+                            if best.partner == true {
+                                PartnerPriceTag()
+                            }
                             Text("\(best.price?.toPersianDigits() ?? "-") تومان")
                                 .shkFont(14, .bold)
                                 .foregroundColor(colors.onSurface)

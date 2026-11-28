@@ -8,6 +8,8 @@ struct CartUiState {
     var items: [CartItemDto] = []
     var totalPrice: Int64 = 0
     var totalDiscount: Int64 = 0
+    // «تخفیف همکاری»: بخشی از totalDiscount
+    var totalPartnerDiscount: Int64 = 0
     var totalFinalPrice: Int64 = 0
     // شناسه‌ی آیتم‌هایی که الان در حال به‌روزرسانی هستن (برای نمایش لودینگ فقط رو همون آیتم)
     var pendingItemIds: Set<Int> = []
@@ -53,6 +55,7 @@ final class CartViewModel: ObservableObject {
             uiState.items = data.items
             uiState.totalPrice = data.totalPrice
             uiState.totalDiscount = data.totalDiscount
+            uiState.totalPartnerDiscount = data.totalPartnerDiscount
             uiState.totalFinalPrice = data.totalFinalPrice
         case .error(let message):
             uiState.isLoading = false
@@ -130,6 +133,7 @@ final class CartViewModel: ObservableObject {
         let discount = items.reduce(Int64(0)) { $0 + $1.discount * Int64($1.count) }
         uiState.totalFinalPrice = final
         uiState.totalDiscount = discount
+        uiState.totalPartnerDiscount = items.reduce(Int64(0)) { $0 + $1.partnerDiscount * Int64($1.count) }
         uiState.totalPrice = final + discount
     }
 }

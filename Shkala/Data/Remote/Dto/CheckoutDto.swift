@@ -272,14 +272,17 @@ struct ConsignmentShippingDto: ShkDTO {
 struct FinancialDto: ShkDTO, Equatable {
     let totalPrice: Int64?
     let totalDiscount: Int64?
+    // «تخفیف همکاری»: بخشی از totalDiscount (سرور قدیمی = nil)
+    let totalPartnerDiscount: Int64?
     let totalFinalPrice: Int64?
     let totalCouponDiscountPrice: Int64?
     let sendPrice: Int64?
-    enum CodingKeys: String, CodingKey { case totalPrice, totalDiscount, totalFinalPrice, totalCouponDiscountPrice, sendPrice }
+    enum CodingKeys: String, CodingKey { case totalPrice, totalDiscount, totalPartnerDiscount, totalFinalPrice, totalCouponDiscountPrice, sendPrice }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         totalPrice = c.lenientInt64(.totalPrice)
         totalDiscount = c.lenientInt64(.totalDiscount)
+        totalPartnerDiscount = c.lenientInt64(.totalPartnerDiscount)
         totalFinalPrice = c.lenientInt64(.totalFinalPrice)
         totalCouponDiscountPrice = c.lenientInt64(.totalCouponDiscountPrice)
         sendPrice = c.lenientInt64(.sendPrice)
