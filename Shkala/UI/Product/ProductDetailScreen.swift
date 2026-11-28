@@ -68,6 +68,8 @@ private struct ProductDisplayPrice: Equatable, Hashable {
     let oldPrice: String?
     let finalPrice: String
     let discountPercent: Int?
+    // «قیمت همکاری»: قیمت همکار فعال (برچسب «قیمت همکاری» بالای قیمت)
+    var isPartner: Bool = false
 }
 
 /** فاز PA (۳-ک): یک لیبل ترغیب به خرید: پیشوند (با ایموجی) + عدد بولد (رنگی/پیش‌فرض) + پسوند */
@@ -271,7 +273,8 @@ private struct ProductDetailContent: View {
             return ProductDisplayPrice(
                 oldPrice: v.isDiscountValid ? formatTomanFa(v.price) : nil,
                 finalPrice: formatTomanFa(v.finalPrice),
-                discountPercent: discountPercentOf(v.price, v.finalPrice, v.isDiscountValid)
+                discountPercent: discountPercentOf(v.price, v.finalPrice, v.isDiscountValid),
+                isPartner: v.isPartnerPrice
             )
         }
         if storeCount > 1, let seller = selectedSeller, seller.finalPrice != nil { return sellerDisplayPrice(seller) }
@@ -357,7 +360,7 @@ private struct ProductDetailContent: View {
                             .padding(.horizontal, 16)
 
                         // فاز ۳۴ (اصلاحیه، کد ۸): کارت «خرید عمده (قیمت پله‌ای)» + مودال جدول
-                        if showTiered { TieredPricingTable(tiers: selectedSeller?.discountTree) }
+                        if showTiered { TieredPricingTable(tiers: selectedSeller?.discountTree, isPartner: selectedSeller?.isPartnerPrice == true) }
 
                         // ================= محصولات مرتبط =================
                         if !relatedProducts.isEmpty {
@@ -805,6 +808,10 @@ private struct ProductDetailContent: View {
                 Spacer().frame(height: 2)
                 ProductFinalPrice(price: price.finalPrice, color: colors.primary, fontSize: 20)
             } else {
+                if price.isPartner {
+                    PartnerPriceTag()
+                    Spacer().frame(height: 4)
+                }
                 ProductFinalPrice(price: price.finalPrice, color: colors.onSurface, fontSize: 20)
             }
         }
@@ -1586,14 +1593,15 @@ private func sellerDisplayPrice(_ seller: ProductSellerDto) -> ProductDisplayPri
     return ProductDisplayPrice(
         oldPrice: hasDiscount ? formatTomanFa(originalPrice) : nil,
         finalPrice: formatTomanFa(finalPrice),
-        discountPercent: discountPercentOf(originalPrice, finalPrice, hasDiscount)
+        discountPercent: discountPercentOf(originalPrice, finalPrice, hasDiscount),
+        isPartner: seller.isPartnerPrice
     )
 }
 
 /** بهترین قیمت محصول (best_normal_price) */
 private func bestNormalDisplayPrice(_ best: BestNormalPriceDto) -> ProductDisplayPrice {
     guard let discount = best.discountPrice, !discount.isBlankShk else {
-        return ProductDisplayPrice(oldPrice: nil, finalPrice: best.price?.toPersianDigits() ?? "-", discountPercent: nil)
+        return ProductDisplayPrice(oldPrice: nil, finalPrice: best.price?.toPersianDigits() ?? "-", discountPercent: nil, isPartner: best.partner == true)
     }
     let original = Int64(best.price?.replacingOccurrences(of: ",", with: "") ?? "")
     let discounted = Int64(discount.replacingOccurrences(of: ",", with: ""))

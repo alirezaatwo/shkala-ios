@@ -111,6 +111,8 @@ struct PartnerInstagramStepDto: ShkDTO {
 
 struct PartnerBaleStepDto: ShkDTO {
     let ready: Bool
+    // الزامی/اختیاری بودن عضویت بله در تنظیمات سایت (نسخه‌های قدیمی سرور: الزامی)
+    let required: Bool
     let ok: Bool
     let linked: Bool
     let checkedAt: String?
@@ -120,12 +122,13 @@ struct PartnerBaleStepDto: ShkDTO {
     let channelUrl: String?
 
     enum CodingKeys: String, CodingKey {
-        case ready, ok, linked, code, bot
+        case ready, ok, linked, code, bot, required
         case checkedAt = "checked_at", botUrl = "bot_url", channelUrl = "channel_url"
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         ready = c.lenientBool(.ready) ?? false
+        required = c.lenientBool(.required) ?? true
         ok = c.lenientBool(.ok) ?? false
         linked = c.lenientBool(.linked) ?? false
         checkedAt = c.lenientString(.checkedAt)

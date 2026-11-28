@@ -134,13 +134,16 @@ struct BestNormalPriceDto: ShkDTO, Equatable {
     let price: String?
     let discountPrice: String?
     let percent: Int?
+    // «قیمت همکاری»: فقط برای همکار فعال true (price = قیمت همکاری، بدون قیمت خط‌خورده)
+    let partner: Bool?
 
-    enum CodingKeys: String, CodingKey { case price, discountPrice = "discount_price", percent }
+    enum CodingKeys: String, CodingKey { case price, discountPrice = "discount_price", percent, partner }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         price = c.lenientString(.price)
         discountPrice = c.lenientString(.discountPrice)
         percent = c.lenientInt(.percent)
+        partner = c.lenientBool(.partner)
     }
 }
 

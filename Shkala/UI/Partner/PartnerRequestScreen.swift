@@ -77,7 +77,7 @@ struct PartnerRequestScreen: View {
         case .ACCOUNT: return s.steps?.account?.ok == true
         case .DOCUMENTS: return s.steps?.documents?.ok == true
         case .INSTAGRAM: return s.steps?.instagram?.ok == true
-        case .BALE: return s.steps?.bale?.ok == true
+        case .BALE: return s.steps?.bale?.ok == true || s.steps?.bale?.required == false
         case .SUBMIT: return s.state == "submitted"
         }
     }
@@ -339,6 +339,13 @@ struct PartnerRequestScreen: View {
 
     @ViewBuilder
     private func baleContent(_ s: PartnerStateDto) -> some View {
+        if s.steps?.bale?.required == false {
+            Text("این مرحله اختیاری است؛ بدون عضویت در بله هم می‌توانید درخواست را بفرستید.")
+                .shkFont(12, lineHeight: 20)
+                .foregroundColor(colors.onSurfaceVariant)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer().frame(height: 8)
+        }
         if let b = s.steps?.bale, b.ready {
             if b.ok {
                 CheckLine(ok: true, text: "عضویت شما در کانال بله تأیید شد.")

@@ -195,6 +195,7 @@ struct CheckoutScreen: View {
                     FinancialSummaryCard(
                         totalPrice: financial.totalPrice ?? 0,
                         totalDiscount: financial.totalDiscount ?? 0,
+                        partnerDiscount: financial.totalPartnerDiscount ?? 0,
                         couponDiscount: financial.totalCouponDiscountPrice ?? 0,
                         sendPrice: financial.sendPrice ?? 0,
                         totalFinalPrice: financial.totalFinalPrice ?? 0,
@@ -361,6 +362,7 @@ private struct AddressSummaryCard: View {
 private struct FinancialSummaryCard: View {
     let totalPrice: Int64
     let totalDiscount: Int64
+    let partnerDiscount: Int64
     let couponDiscount: Int64
     let sendPrice: Int64
     let totalFinalPrice: Int64
@@ -372,10 +374,16 @@ private struct FinancialSummaryCard: View {
         let primary = colors.primary
         SiteCard(contentPadding: .hv(14, 8)) {
             SiteKeyValueRow(label: "جمع کل", value: "\(formatTomanFa(totalPrice)) تومان", icon: RemixIcons.ShoppingBag3Line)
-            if totalDiscount > 0 {
+            // «تخفیف همکاری» جدا از تخفیف محصولات (جمع همان)
+            if totalDiscount - partnerDiscount > 0 {
                 SiteDashedDivider()
-                SiteKeyValueRow(label: "تخفیف محصولات", value: "\(formatTomanFa(abs(totalDiscount))) تومان",
+                SiteKeyValueRow(label: "تخفیف محصولات", value: "\(formatTomanFa(abs(totalDiscount - partnerDiscount))) تومان",
                                 icon: RemixIcons.PriceTag3Line, valueColor: primary)
+            }
+            if partnerDiscount > 0 {
+                SiteDashedDivider()
+                SiteKeyValueRow(label: "تخفیف همکاری", value: "\(formatTomanFa(abs(partnerDiscount))) تومان",
+                                icon: RemixIcons.TeamLine, valueColor: primary)
             }
             if couponDiscount > 0 {
                 VStack(spacing: 0) {

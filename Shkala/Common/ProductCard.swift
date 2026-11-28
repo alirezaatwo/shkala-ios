@@ -109,6 +109,16 @@ struct ProductCard: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                         }
+                    } else if price.partner == true {
+                        // «قیمت همکاری»: فقط برای همکار فعال (برچسب به‌جای قیمت خط‌خورده)
+                        VStack(spacing: 2) {
+                            PartnerPriceTag()
+                            Text("\(price.price?.toPersianDigits() ?? "-") تومان")
+                                .shkFont(16, .bold, lineHeight: 24)
+                                .foregroundColor(colors.onSurface)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
                     } else {
                         Text("\(price.price?.toPersianDigits() ?? "-") تومان")
                             .shkFont(16, .bold, lineHeight: 24)

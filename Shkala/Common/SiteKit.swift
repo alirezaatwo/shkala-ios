@@ -471,6 +471,20 @@ struct SiteStatusChip: View {
     }
 }
 
+/// برچسب «قیمت همکاری» کنار قیمت - فقط برای همکار فعال (سرور best_normal_price.partner / is_partner_price می‌فرستد)
+/// همان قیمتی است که سبد خرید حساب می‌کند؛ قیمت عمومی و خط‌خورده برای همکار نشان داده نمی‌شود
+struct PartnerPriceTag: View {
+    var body: some View {
+        Text("قیمت همکاری")
+            .shkFont(10, .bold, lineHeight: 14)
+            .foregroundColor(SiteStatusColors.Success)
+            .lineLimit(1)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(SiteStatusColors.Success.opacity(0.12)))
+    }
+}
+
 /// ردیف «برچسب ..... مقدار» برای خلاصه‌ها (فاکتور، جزئیات سفارش و ...)
 struct SiteKeyValueRow: View {
     let label: String

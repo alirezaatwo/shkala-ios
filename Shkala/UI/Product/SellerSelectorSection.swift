@@ -296,6 +296,8 @@ struct SellerSelectorSection: View {
  */
 struct TieredPricingTable: View {
     let tiers: [DiscountTierDto]?
+    // «قیمت همکاری»: برای همکار فعال جدول پله‌ای همکار است
+    var isPartner: Bool = false
     @Environment(\.shkColors) private var colors
 
     var body: some View {
@@ -311,13 +313,13 @@ struct TieredPricingTable: View {
         return Group {
             if !sorted.isEmpty {
                 SiteCard(onClick: {
-                    ShkDialogCenter.shared.show { TieredPricingModal(sortedTiers: sorted, cheapestPrice: cheapest) }
+                    ShkDialogCenter.shared.show { TieredPricingModal(sortedTiers: sorted, cheapestPrice: cheapest, isPartner: isPartner) }
                 }) {
                     HStack(spacing: 0) {
                         SiteIconBadge(icon: RemixIcons.StackLine, size: 42, iconSize: 21)
                         Spacer().frame(width: 12)
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("قیمت خرید عمده (همکاری)").shkFont(13, .bold).foregroundColor(colors.onSurface)
+                            Text(isPartner ? "خرید عمده ویژه‌ی همکار" : "قیمت خرید عمده (همکاری)").shkFont(13, .bold).foregroundColor(colors.onSurface)
                             Text("با خرید تعداد بیشتر، قیمت واحد کمتر می‌شود").shkFont(11, lineHeight: 18).foregroundColor(colors.onSurfaceVariant)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -334,11 +336,12 @@ struct TieredPricingTable: View {
 private struct TieredPricingModal: View {
     let sortedTiers: [(Int, Int64)]
     let cheapestPrice: Int64
+    let isPartner: Bool
     @Environment(\.shkColors) private var colors
 
     var body: some View {
         SiteDialogContent(
-            title: "قیمت خرید عمده (همکاری)",
+            title: isPartner ? "خرید عمده ویژه‌ی همکار" : "قیمت خرید عمده (همکاری)",
             icon: RemixIcons.StackLine,
             confirmText: "بستن",
             onConfirm: { ShkDialogCenter.shared.dismiss() }
